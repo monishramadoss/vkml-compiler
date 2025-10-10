@@ -41,7 +41,7 @@ int main() {
     
     vkml::Compiler::getInstance()->runTosaToGPU();
     std::cout << "MLIR Module:\n" ;
-    vkml::dump();
+    //vkml::dump();
 
     return 0;
  }

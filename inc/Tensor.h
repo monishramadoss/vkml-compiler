@@ -1,16 +1,11 @@
 #pragma once
-#include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
-#include "mlir/Dialect/Linalg/Passes.h"
-#include "mlir/Dialect/GPU/Transforms/Passes.h"
-#include "mlir/Conversion/GPUToSPIRV/GPUToSPIRVPass.h"
-
 
 #include <vector>
 #include <string>
 #include <type_traits>
 #include <cstddef>
 #include <ostream>
-#include <unordered_map>
+
 
 #include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/BuiltinTypes.h>
@@ -19,12 +14,9 @@
 #include <mlir/Support/LLVM.h>
 
 
-#include "mlir/Conversion/TosaToSCF/TosaToSCF.h"
-#include "mlir/Conversion/TosaToTensor/TosaToTensor.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
-#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/ValueRange.h"
@@ -33,182 +25,8 @@
 #include "mlir/IR/Verifier.h"
 #include "mlir/Pass/PassManager.h"
 
-#include "mlir/Conversion/TosaToMLProgram/TosaToMLProgram.h"
-#include "mlir/Transforms/Passes.h"
-#include "mlir/Conversion/Passes.h"
 
-
-// Implementation details for Tensor utilities
-namespace tensor_detail {
-    template<typename U>
-    struct is_character_or_byte_or_bool : std::bool_constant<
-        std::is_same_v<U, char> ||
-        std::is_same_v<U, unsigned char> ||
-        std::is_same_v<U, signed char> ||
-        std::is_same_v<U, std::byte> ||
-        std::is_same_v<U, bool>
-    > {};
-
-    
-    static auto cToMLIRType = [](mlir::MLIRContext* ctx, const std::type_info& type) -> mlir::Type {
-        if (type == typeid(float)) {
-            return mlir::Float32Type::get(ctx);
-        } else if (type == typeid(double)) {
-            return mlir::Float64Type::get(ctx);
-        } else if (type == typeid(char)) {
-            return mlir::IntegerType::get(ctx, 8, mlir::IntegerType::Signed);
-        } else if (type == typeid(unsigned char)) {
-            return mlir::IntegerType::get(ctx, 8, mlir::IntegerType::Unsigned);
-        } else if (type == typeid(int32_t)) {
-            return mlir::IntegerType::get(ctx, 32, mlir::IntegerType::Signed);
-        } else if (type == typeid(int64_t)) {
-            return mlir::IntegerType::get(ctx, 64, mlir::IntegerType::Signed);
-        } else if (type == typeid(uint32_t)) {
-            return mlir::IntegerType::get(ctx, 32, mlir::IntegerType::Unsigned);
-        } else if (type == typeid(uint64_t)) {
-            return mlir::IntegerType::get(ctx, 64, mlir::IntegerType::Unsigned);
-        } else if (type == typeid(bool)) {
-            return mlir::IntegerType::get(ctx, 1, mlir::IntegerType::Unsigned);
-        } else {
-            throw std::invalid_argument("Unsupported type for MLIR conversion");
-        }
-    };
-    
-
-}
-
-#include "mlir/Dialect/Tosa/IR/TosaOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/MLProgram/IR/MLProgram.h"
-#include "mlir/Dialect/GPU/IR/GPUDialect.h"
-
-
-namespace vkml {
-    class Compiler {
-    private:
-        mlir::MLIRContext context_;
-        mlir::OpBuilder builder_;
-        mlir::ModuleOp module_;
-        mlir::func::FuncOp mainFunc_;
-        mlir::PassManager pm_;
-        static std::shared_ptr<Compiler> instance_;
-        std::unordered_map<std::string, size_t> func_name_count_map_;
-        Compiler(): context_(), builder_(&context_), pm_(&context_), mainFunc_(nullptr) {
-            context_.loadDialect<mlir::tosa::TosaDialect>();
-            context_.loadDialect<mlir::func::FuncDialect>();
-            context_.loadDialect<mlir::ml_program::MLProgramDialect>();
-            context_.loadDialect<mlir::gpu::GPUDialect>();
-
-            module_ = mlir::ModuleOp::create(builder_.getUnknownLoc());
-            builder_.setInsertionPointToStart(module_.getBody());
-            auto loc = builder_.getUnknownLoc();
-            auto fnType = builder_.getFunctionType({}, {});
-            mainFunc_ = builder_.create<mlir::func::FuncOp>(loc, "main", fnType);
-            auto *entry = mainFunc_.addEntryBlock();
-            mlir::OpBuilder::InsertionGuard g(builder_);
-            builder_.setInsertionPointToStart(entry);
-            builder_.create<mlir::func::ReturnOp>(loc);
-            builder_.setInsertionPointToStart(module_.getBody());
-
-            pm_.addPass(mlir::createCanonicalizerPass());
-            pm_.addPass(mlir::createTosaToMLProgram());
-            pm_.addPass(mlir::createTosaToSCFPass());
-            pm_.addNestedPass<mlir::func::FuncOp>(mlir::createTosaToSCFPass());
-            pm_.addPass(mlir::createTosaToTensorPass());
-            pm_.addPass(mlir::tosa::createTosaToLinalg());
-
-        }
-
-    public:
-        
-        Compiler(const Compiler&) = delete;
-        Compiler& operator=(const Compiler&) = delete;
-
-        static std::shared_ptr<Compiler> getInstance() {
-            if(instance_.get() == nullptr)
-                instance_ = std::shared_ptr<Compiler>(new Compiler());
-            return instance_;
-        }
-
-        mlir::MLIRContext* getContext() { return &context_; }
-        mlir::OpBuilder& getBuilder() { return builder_; }
-        mlir::ModuleOp getModule() { return module_; }
-        mlir::Location getUnknownLoc() { return builder_.getUnknownLoc(); }
-
-       
-        auto setInsertionIntoMain() {
-            auto &block = mainFunc_.getBody().front();
-            mlir::Operation *terminator = block.getTerminator();
-            builder_.setInsertionPoint(terminator); 
-            return builder_;
-        }
-
-        auto setInsertionGlobalModule() {
-            builder_.setInsertionPointToStart(module_.getBody());
-            return builder_;
-        }
-
-        mlir::tosa::VariableOp createVariable(mlir::RankedTensorType type,
-                                            llvm::ArrayRef<int64_t> shape,
-                                            llvm::StringRef name) {
-            setInsertionGlobalModule();
-            auto loc = builder_.getUnknownLoc();
-            auto shapeAttr = builder_.getIndexTensorAttr(shape);
-            auto nameAttr = builder_.getStringAttr(name);
-            auto typeAttr = mlir::TypeAttr::get(type.getElementType());
-            return builder_.create<mlir::tosa::VariableOp>(loc, nameAttr, shapeAttr, typeAttr, mlir::Attribute{});
-        }
-
-        std::string getUniqueFunctionName(const std::string& baseName) {
-            size_t count = func_name_count_map_[baseName]++;
-            if (count == 0) {
-                return baseName;
-            } else {
-                return baseName + "_" + std::to_string(count);
-            }
-        }
-
-        void runTosaToGPU() {
-            pm_.addPass(mlir::createConvertLinalgToLoopsPass());
-            pm_.addPass(mlir::createGpuKernelOutliningPass());
-        //    pm_.addPass(mlir::createConvertGPUToSPIRVPass());
-            if (failed(pm_.run(module_))) {
-                module_.dump();
-                throw std::runtime_error("Failed to run TOSA to GPU conversion");
-            }
-        }
-       
-    };
-
-    std::shared_ptr<Compiler> Compiler::instance_ = nullptr;
-    inline void dump(){
-        auto mod = Compiler::getInstance()->getModule();
-        if(mlir::failed( mod.verify() )){
-            mod.dump();
-            throw std::runtime_error("Module verification failed");
-        }
-        if(mlir::failed(mod.verifyRegions())){
-            mod.dump();
-            throw std::runtime_error("Module region verification failed");
-        }
-        if(mlir::failed(mod.verifyInvariants())){
-            mod.dump();
-            throw std::runtime_error("Module type verification failed");
-        }
-        mod.walk([&](mlir::Operation *op) {
-            if (mlir::failed(mlir::verify(op))) {
-                mod.dump();
-                throw std::runtime_error("Operation verification failed");
-            }
-        });
-
-        mlir::OpPrintingFlags flags;
-        mod.print(llvm::outs(), flags);
-    }
-   
-}
-
-
+#include "Compiler.h"
 
 template<typename T>
 class Tensor {
@@ -231,11 +49,11 @@ public:
   // Convenience constructor to disambiguate brace-init usage
     Tensor(std::initializer_list<int64_t> dims) : Tensor(mlir::ArrayRef<int64_t>(dims.begin(), dims.size())) {}
 
-        Tensor(const mlir::ArrayRef<int64_t>& shape)
-                : shapeStorage_(shape.begin(), shape.end()), shape_(shapeStorage_), src_(nullptr), 
-          type_(mlir::RankedTensorType::get(shape_, 
-            tensor_detail::cToMLIRType(vkml::Compiler::getInstance()->getContext(), 
-        typeid(T)))), data_(nullptr), variableWriteOp_(nullptr), variableReadOp_(nullptr)
+    Tensor(const mlir::ArrayRef<int64_t>& shape)
+            : shapeStorage_(shape.begin(), shape.end()), shape_(shapeStorage_), src_(nullptr), 
+      type_(mlir::RankedTensorType::get(shape_, 
+        tensor_detail::cToMLIRType(vkml::Compiler::getInstance()->getContext(), 
+    typeid(T)))), data_(nullptr), variableWriteOp_(nullptr), variableReadOp_(nullptr)
     {
         variableReadOp_ = nullptr;
         variableWriteOp_ = nullptr;
@@ -244,7 +62,40 @@ public:
         symbolic_id_ = "tensor_" + std::to_string(id_counter++);
         auto compiler = vkml::Compiler::getInstance();        
         variableOp_ = compiler->createVariable(type_, shape_, symbolic_id_);
+    }
+    
+    // Constructor with data initialization
+    Tensor(const mlir::ArrayRef<int64_t>& shape, std::shared_ptr<T> data)
+            : shapeStorage_(shape.begin(), shape.end()), shape_(shapeStorage_), src_(nullptr), 
+      type_(mlir::RankedTensorType::get(shape_, 
+        tensor_detail::cToMLIRType(vkml::Compiler::getInstance()->getContext(), 
+    typeid(T)))), data_(data), variableWriteOp_(nullptr), variableReadOp_(nullptr)
+    {
+        variableReadOp_ = nullptr;
+        variableWriteOp_ = nullptr;
+
+        static int id_counter = 0; 
+        symbolic_id_ = "tensor_" + std::to_string(id_counter++);
+        auto compiler = vkml::Compiler::getInstance();
         
+        // Use the data-aware createVariable if data is provided
+        if (data_ != nullptr) {
+            variableOp_ = compiler->createVariableWithData(type_, shape_, symbolic_id_, data_.get());
+        } else {
+            variableOp_ = compiler->createVariable(type_, shape_, symbolic_id_);
+        }
+    }
+    
+    // Helper method to set data after construction
+    void setData(std::shared_ptr<T> data) {
+        data_ = data;
+        // Note: This won't update the MLIR variable's initial value
+        // You'd need to use tosa.variable_write to update it at runtime
+    }
+    
+    // Helper method to get data
+    std::shared_ptr<T> getData() const {
+        return data_;
     }
     
    
@@ -309,8 +160,7 @@ private:
 
 public:
 
-
- // Expose element type for template utilities (e.g., buildFunctionWrapper)
+    // Expose element type for template utilities (e.g., buildFunctionWrapper)
     template<typename Op, typename ReturnType, typename... Args>
     static auto buildFunctionWrapper(Args&&... args) {
         // Remove references and cv-qualifiers, then map Tensor<E> -> E and compute common type.
