@@ -83,6 +83,7 @@ namespace tensor_detail {
 #include "mlir/Dialect/SCF/Transforms/BufferizableOpInterfaceImpl.h"
 #include "mlir/Dialect/MLProgram/Transforms/BufferizableOpInterfaceImpl.h"
 
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h" 
 
 #include "mlir/Dialect/SCF/Transforms/Passes.h"
 #include "mlir/Dialect/Tensor/Transforms/Passes.h"
@@ -109,7 +110,7 @@ namespace vkml {
             mlir::scf::registerBufferizableOpInterfaceExternalModels(registry);
             mlir::tensor::registerBufferizableOpInterfaceExternalModels(registry);
             mlir::ml_program::registerBufferizableOpInterfaceExternalModels(registry);
-
+            mlir::func::registerInlinerExtension(registry);
             context_.appendDialectRegistry(registry);
             
             // Load all the dialects
@@ -327,51 +328,31 @@ namespace vkml {
             // ===== Stage 4: GPU Lowering =====
             // Map parallel loops to GPU operations
             pm_.addNestedPass<mlir::func::FuncOp>(mlir::createGpuMapParallelLoopsPass());
+            pm_.addNestedPass<mlir::func::FuncOp>(mlir::createConvertParallelLoopToGpuPass());
+            pm_.addPass(mlir::createGpuKernelOutliningPass());
             pm_.addPass(mlir::createCanonicalizerPass());
-            
+            pm_.addPass(mlir::createInlinerPass());
+
             std::cerr << "Stage 4 (GPU Lowering) setup\n";
             
             // ===== Stage 5: Cleanup =====
+            pm_.addPass(mlir::createInlinerPass());
+
             pm_.addPass(mlir::createCanonicalizerPass());
             pm_.addPass(mlir::createCSEPass());
-            
             std::cerr << "Running complete pipeline...\n";
             
             // Run the complete pipeline
             if (mlir::failed(pm_.run(module_))) {
                 module_.dump();
                 std::cerr << "Warning: Some operations were not fully lowered\n";
+            } else {
+                module_.dump();
             }
-            module_.dump();
+
             std::cerr << "Pipeline completed\n";
         }
-        
-        /// Example of how to bufferize function operands:
-        /// 
-        /// To bufferize function arguments/returns (tensor -> memref), you have two options:
-        ///
-        /// Option 1: Use the pass with command-line options
-        /// ```
-        /// mlir-opt --one-shot-bufferize="bufferize-function-boundaries=1 \
-        ///          function-boundary-type-conversion=identity-layout-map" input.mlir
-        /// ```
-        ///
-        /// Option 2: Programmatically configure the pass (requires creating BufferizationState)
-        /// ```cpp
-        /// mlir::bufferization::OneShotBufferizationOptions options;
-        /// options.bufferizeFunctionBoundaries = true;
-        /// options.setFunctionBoundaryTypeConversion(
-        ///     mlir::bufferization::LayoutMapOption::IdentityLayoutMap);
-        /// 
-        /// mlir::bufferization::BufferizationState state(module_, options);
-        /// if (mlir::failed(mlir::bufferization::runOneShotBufferize(
-        ///         module_, options, state))) {
-        ///     // Handle error
-        /// }
-        /// ```
-        ///
-        /// For simpler cases (no function boundary bufferization needed),
-        /// just use the default OneShotBufferizePass which this class uses in runTosaToGPU().
+      
        
     };
 
