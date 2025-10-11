@@ -68,6 +68,13 @@ add_library(vkml-compiler STATIC
      ${HEADERS} ${GEN_HEADERS} ${SOURCES} ${GEN_SOURCES} )
 
 target_link_libraries(vkml-compiler 
+   	"MLIRIR"
+    "MLIRSupport"
+    "MLIRParser"
+    "MLIRPass"
+    "MLIRTransforms"
+    "MLIRAnalysis"
+
  	# "MLIRTensorAllExtensions" 
  	# "MLIRTensorDialect" 
  	# "MLIRTensorInferTypeOpInterfaceImpl"
@@ -75,21 +82,28 @@ target_link_libraries(vkml-compiler
  	# "MLIRTensorTilingInterfaceImpl"
 	"MLIRTensorToLinalg" 
 	"MLIRMLProgramTransforms"
-# 	"MLIRTensorTransformOps"
-# 	"MLIRTensorToSPIRV" 
-# 	"MLIRTensorTransforms"
+	"MLIRTensorTransformOps"
+
+	# 	"MLIRTensorToSPIRV" 
+	
 	"MLIRFuncDialect"
 	"MLIRTosaDialect" 
-	"MLIRTosaTransforms"
 	"MLIRMLProgramDialect"
+	"MLIRFuncDialect"
+	"MLIRGPUDialect"	
+	"MLIRSCFDialect"
+	"MLIRArithDialect"
+	"MLIRMemRefDialect"
+
+	"MLIRTosaTransforms"
+	"MLIRGPUTransforms"
+	
 	"MLIRTosaToMLProgram"
 	"MLIRTosaToLinalg" 
 	"MLIRTosaToArith"
 	"MLIRTosaToTensor"
 	"MLIRTosaToSCF"
 # 	"MLIRTosaShardingInterfaceImpl"
-	"MLIRGPUDialect"
-	"MLIRGPUTransforms"
 	"MLIRSCFToGPU"
 # 	"MLIRSPIRVDialect"
 # 	"MLIRAffineToStandard"
