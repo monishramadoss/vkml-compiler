@@ -197,6 +197,24 @@
                 "vkml-lib"
             ],
             "configuration": "Release"
+        }, 
+        {
+            "name": "vkml-win",
+            "configurePreset": "x64-debug-windows",
+            "targets": [
+                "vkml-test-app",
+                "vkml-opt",
+                "vkml-lib"
+            ],
+            "configuration": "Debug"
+        },
+        {
+            "name": "vkmkl-lib-win",
+            "configurePreset": "x64-release-windows",
+            "targets": [
+                "vkml-lib"
+            ],
+            "configuration": "Release"
         }
     ],
     "testPresets": [
