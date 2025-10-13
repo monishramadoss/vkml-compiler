@@ -181,41 +181,31 @@
     ],
     "buildPresets": [
         {
-            "name": "vkml",
-            "configurePreset": "x64-debug-linux",
+            "name": "tools",
             "targets": [
-                "vkml-test-app",
                 "vkml-opt",
                 "vkml-translate"
-            ],
-            "configuration": "Debug"
+            ]
         },
         {
-            "name": "vkml-lib",
-            "configurePreset": "x64-release-linux",
-            "targets": [
-                "vkml-lib"
-            ],
-            "configuration": "Release"
-        }, 
-        {
-            "name": "vkml-win",
-            "configurePreset": "x64-debug-windows",
+            "name": "dev",
             "targets": [
                 "vkml-test-app",
-                "vkml-opt",
                 "vkml-lib"
             ],
             "configuration": "Debug"
         },
         {
-            "name": "vkmkl-lib-win",
-            "configurePreset": "x64-release-windows",
-            "targets": [
-                "vkml-lib"
-            ],
-            "configuration": "Release"
+            "name": "dev-win",
+            "inherits": ["dev"],
+            "configurePreset": "x64-debug-windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         }
+
     ],
     "testPresets": [
         {
@@ -223,9 +213,7 @@
             "description": "",
             "displayName": "",
             "configurePreset": "x64-debug-linux",
-            "execution": {
-                
-            }
+            "execution": {}
         }
     ]
 }
