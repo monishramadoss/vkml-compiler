@@ -83,7 +83,7 @@ target_link_libraries(vkml-compiler
 	"MLIRTensorToLinalg" 
 	"MLIRMLProgramTransforms"
 	"MLIRTensorTransformOps"
-
+	
 	# 	"MLIRTensorToSPIRV" 
 	
 	"MLIRFuncDialect"
@@ -95,6 +95,8 @@ target_link_libraries(vkml-compiler
 	"MLIRArithDialect"
 	"MLIRMemRefDialect"
 
+	"MLIRFuncInlinerExtension"
+	 
 	"MLIRTosaTransforms"
 	"MLIRGPUTransforms"
 	

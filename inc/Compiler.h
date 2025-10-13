@@ -338,6 +338,7 @@ namespace vkml {
             // ===== Stage 5: Cleanup =====
             pm_.addPass(mlir::createInlinerPass());
 
+            pm_.addPass(mlir::create)
             pm_.addPass(mlir::createCanonicalizerPass());
             pm_.addPass(mlir::createCSEPass());
             std::cerr << "Running complete pipeline...\n";
