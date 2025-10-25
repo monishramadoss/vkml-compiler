@@ -189,11 +189,11 @@
         },
         {
             "name": "dev",
+            "hidden": true,
             "targets": [
                 "vkml-test-app",
                 "vkml-lib"
-            ],
-            "configuration": "Debug"
+            ]
         },
         {
             "name": "dev-win",
@@ -204,8 +204,19 @@
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
             }
+        },
+        {
+            "name": "dev-linux",
+            "inherits": ["dev"],
+            "configurePreset": "x64-debug-linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
         }
-
+        
+        
     ],
     "testPresets": [
         {

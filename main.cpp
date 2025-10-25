@@ -37,11 +37,11 @@ int main() {
     Tensor<float> tensor_1({1, 3});
     auto result = tensor_0 + tensor_1;
     auto result2 = result -tensor_0;
-
+    
+    vkml::dump();
     
     vkml::Compiler::getInstance()->runTosaToGPU();
     std::cout << "MLIR Module:\n" ;
-    //vkml::dump();
 
     return 0;
  }
