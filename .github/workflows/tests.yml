@@ -10,6 +10,7 @@ jobs:
   test:
     name: Build and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     
     steps:
     - name: Checkout code
@@ -32,6 +33,16 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: ${{ runner.os }}-ccache
+    
+    - name: Cache LLVM Build
+      uses: actions/cache@v4
+      with:
+        path: |
+          build/x64-debug-linux/llvm
+          build/x64-debug-linux/lib/cmake
+        key: ${{ runner.os }}-llvm-${{ hashFiles('llvm/**') }}
+        restore-keys: |
+          ${{ runner.os }}-llvm-
     
     - name: Configure CMake
       run: |
