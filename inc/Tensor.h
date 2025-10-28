@@ -402,13 +402,21 @@ public:
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator+(const Tensor<U> &rhs) const {
-    return linalgBinaryOp<mlir::arith::AddIOp, T, U>(*this, rhs);
+    if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
+      return linalgBinaryOp<mlir::arith::AddIOp, T, U>(*this, rhs);
+    } else {
+      return linalgBinaryOp<mlir::arith::AddFOp, T, U>(*this, rhs);
+    }
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator-(const Tensor<U> &rhs) const {
-    return linalgBinaryOp<mlir::arith::SubIOp, T, U>(*this, rhs);
+    if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
+      return linalgBinaryOp<mlir::arith::SubIOp, T, U>(*this, rhs);
+    } else {
+      return linalgBinaryOp<mlir::arith::SubFOp, T, U>(*this, rhs);
+    }
   }
 
   // Unified division operator: integer -> DivSIOp, floating -> DivFOp
@@ -437,11 +445,16 @@ public:
   }
 
   Tensor<T> operator+() const {
-    return linalgUnaryOp<mlir::math::AbsFOp, T>(*this);
+    // Unary plus returns absolute value
+    if constexpr (std::is_floating_point_v<T>) {
+      return linalgUnaryOp<mlir::math::AbsFOp, T>(*this);
+    } else {
+      return linalgUnaryOp<mlir::math::AbsIOp, T>(*this);
+    }
   }
   
   Tensor<T> operator~() const {
-    // Bitwise not: XOR with all 1s
+    // Bitwise not: XOR with all 1s using linalg.generic
     auto compiler = vkml::Compiler::getInstance();
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
@@ -450,15 +463,37 @@ public:
     auto inputType = inputValue.getType().cast<mlir::RankedTensorType>();
     auto elemType = inputType.getElementType();
     
-    // Create a constant tensor of all 1s
+    // Create a constant tensor of all 1s (all bits set)
     int64_t allOnes = -1;
     auto onesAttr = mlir::DenseElementsAttr::get(inputType, 
         builder.getIntegerAttr(elemType, allOnes));
-    auto onesValue = builder.create<mlir::arith::ConstantOp>(
+    auto onesConstant = builder.create<mlir::arith::ConstantOp>(
         loc, inputType, onesAttr);
     
-    return linalgBinaryOp<mlir::arith::XOrIOp, T, T>(*this, 
-        *reinterpret_cast<const Tensor<T>*>(&onesValue));
+    // Use linalg.generic to perform XOR
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, inputType.getShape(), elemType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        inputType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, inputType, mlir::ValueRange{inputValue, onesConstant.getResult()},
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto xorResult = b.create<mlir::arith::XOrIOp>(nestedLoc, args[0], args[1]);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, xorResult.getResult());
+        });
+    
+    Tensor<T> result(this->getShape());
+    result.write(genericOp.getResult(0));
+    return result;
   }
   
   Tensor<T> operator!() const {
