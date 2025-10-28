@@ -46,24 +46,21 @@ static auto cToMLIRType = [](mlir::MLIRContext *ctx,
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MLProgram/IR/MLProgram.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Pass/PassManager.h"
 
 #include <iostream>
 
 #include "mlir/Conversion/GPUToSPIRV/GPUToSPIRVPass.h"
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
-#include "mlir/Conversion/TosaToArith/TosaToArith.h"
-#include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
 #include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 
 #include "mlir/Conversion/Passes.h"
-#include "mlir/Conversion/TosaToMLProgram/TosaToMLProgram.h"
 #include "mlir/Transforms/Passes.h"
 
 #include "mlir/Dialect/Bufferization/Transforms/OneShotAnalysis.h"
@@ -89,12 +86,7 @@ class PassPipelineConfigurator {
 public:
   static void buildDefault(mlir::PassManager &pm) {
     pm.addPass(mlir::createCanonicalizerPass());
-    pm.addPass(mlir::createTosaToMLProgram());
     pm.addPass(mlir::createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToLinalg());
-    pm.addPass(mlir::createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::createTosaToArithPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::createTosaToSCFPass());
     pm.addPass(mlir::createCanonicalizerPass());
     mlir::bufferization::OneShotBufferizePassOptions opts;
     opts.bufferizeFunctionBoundaries = true;
@@ -170,33 +162,6 @@ class VariableFactory {
 public:
   VariableFactory(mlir::OpBuilder &builder, mlir::ModuleOp &module)
       : builder_(builder), module_(module) {}
-
-  mlir::tosa::VariableOp createZeroInitialized(mlir::RankedTensorType type,
-                                               llvm::ArrayRef<int64_t> shape,
-                                               llvm::StringRef name) {
-    builder_.setInsertionPointToStart(module_.getBody());
-    auto loc = builder_.getUnknownLoc();
-    // Shape stored as DenseElementsAttr (rank-1 tensor of i64 dims)
-    auto shapeType = mlir::RankedTensorType::get({(int64_t)shape.size()},
-                                                 builder_.getI64Type());
-    auto shapeAttr = builder_.getIndexTensorAttr(shape);
-    auto nameAttr = builder_.getStringAttr(name);
-    mlir::Attribute zeroAttr, initAttr;
-    auto elemType = type.getElementType();
-
-    if (elemType.isF32())
-      zeroAttr = builder_.getF32FloatAttr(0.0f);
-    else if (elemType.isF64())
-      zeroAttr = builder_.getF64FloatAttr(0.0);
-    else if (llvm::isa<mlir::IntegerType>(elemType))
-      zeroAttr = builder_.getIntegerAttr(elemType, 0);
-    else
-      zeroAttr = builder_.getF32FloatAttr(0.0f);
-    initAttr = mlir::DenseElementsAttr::get(type, zeroAttr);
-
-    return builder_.create<mlir::tosa::VariableOp>(loc, nameAttr.getValue(),
-                                                   shapeAttr, type, initAttr);
-  }
 };
 
 namespace vkml {
@@ -229,7 +194,6 @@ private:
     context_.appendDialectRegistry(registry);
 
     // Load all the dialects
-    context_.loadDialect<mlir::tosa::TosaDialect>();
     context_.loadDialect<mlir::func::FuncDialect>();
     context_.loadDialect<mlir::ml_program::MLProgramDialect>();
     context_.loadDialect<mlir::gpu::GPUDialect>();
@@ -239,6 +203,7 @@ private:
     context_.loadDialect<mlir::memref::MemRefDialect>();
     context_.loadDialect<mlir::bufferization::BufferizationDialect>();
     context_.loadDialect<mlir::linalg::LinalgDialect>();
+    context_.loadDialect<mlir::math::MathDialect>();
 
     module_ = mlir::ModuleOp::create(builder_.getUnknownLoc());
     builder_.setInsertionPointToStart(module_.getBody());
@@ -277,109 +242,6 @@ public:
     return ModuleScope(module_, builder_, /*atStart=*/false);
   }
 
-  mlir::tosa::VariableOp createVariable(mlir::RankedTensorType type,
-                                        llvm::ArrayRef<int64_t> shape,
-                                        llvm::StringRef name) {
-    auto scope = inModuleStart();
-    auto loc = builder_.getUnknownLoc();
-    auto shapeAttr = builder_.getIndexTensorAttr(shape);
-    auto nameAttr = builder_.getStringAttr(name);
-    auto typeAttr = mlir::TypeAttr::get(type.getElementType());
-
-    // Create a zero-initialized tensor as the initial value
-    auto elemType = type.getElementType();
-    mlir::Attribute zeroAttr;
-    if (elemType.isF32()) {
-      zeroAttr = builder_.getF32FloatAttr(0.0f);
-    } else if (elemType.isF64()) {
-      zeroAttr = builder_.getF64FloatAttr(0.0);
-    } else if (elemType.isInteger(1)) {
-      zeroAttr = builder_.getBoolAttr(false);
-    } else if (llvm::isa<mlir::IntegerType>(elemType)) {
-      zeroAttr = builder_.getIntegerAttr(elemType, 0);
-    } else {
-      zeroAttr = builder_.getF32FloatAttr(0.0f); // fallback
-    }
-
-    auto initialValueAttr = mlir::DenseElementsAttr::get(type, zeroAttr);
-
-    return builder_.create<mlir::tosa::VariableOp>(loc, nameAttr, shapeAttr,
-                                                   typeAttr, initialValueAttr);
-  }
-
-  // Overload that accepts actual data from a pointer
-  template <typename T>
-  mlir::tosa::VariableOp createVariableWithData(mlir::RankedTensorType type,
-                                                llvm::ArrayRef<int64_t> shape,
-                                                llvm::StringRef name,
-                                                const T *dataPtr) {
-    auto scope = inModuleStart();
-    auto loc = builder_.getUnknownLoc();
-    auto shapeAttr = builder_.getIndexTensorAttr(shape);
-    auto nameAttr = builder_.getStringAttr(name);
-    auto typeAttr = mlir::TypeAttr::get(type.getElementType());
-
-    mlir::Attribute initialValueAttr;
-
-    if (dataPtr != nullptr) {
-      // Calculate total number of elements
-      int64_t numElements = 1;
-      for (auto dim : shape) {
-        numElements *= dim;
-      }
-
-      // Create DenseElementsAttr from the raw data
-      auto elemType = type.getElementType();
-
-      if constexpr (std::is_same_v<T, float>) {
-        if (elemType.isF32()) {
-          llvm::ArrayRef<float> dataArray(dataPtr, numElements);
-          initialValueAttr = mlir::DenseElementsAttr::get(type, dataArray);
-        }
-      } else if constexpr (std::is_same_v<T, double>) {
-        if (elemType.isF64()) {
-          llvm::ArrayRef<double> dataArray(dataPtr, numElements);
-          initialValueAttr = mlir::DenseElementsAttr::get(type, dataArray);
-        }
-      } else if constexpr (std::is_integral_v<T>) {
-        llvm::ArrayRef<T> dataArray(dataPtr, numElements);
-        initialValueAttr = mlir::DenseElementsAttr::get(type, dataArray);
-      }
-
-      // Fallback to zero-initialization if type didn't match
-      if (!initialValueAttr) {
-        mlir::Attribute zeroAttr;
-        if (elemType.isF32()) {
-          zeroAttr = builder_.getF32FloatAttr(0.0f);
-        } else if (elemType.isF64()) {
-          zeroAttr = builder_.getF64FloatAttr(0.0);
-        } else {
-          zeroAttr = builder_.getIntegerAttr(elemType, 0);
-        }
-        initialValueAttr = mlir::DenseElementsAttr::get(type, zeroAttr);
-      }
-    } else {
-      // No data provided, use zero initialization
-      mlir::Attribute zeroAttr;
-      auto elemType = type.getElementType();
-      if (elemType.isF32()) {
-        zeroAttr = builder_.getF32FloatAttr(0.1f);
-      } else if (elemType.isF64()) {
-        zeroAttr = builder_.getF64FloatAttr(0.1);
-      } else if (elemType.isInteger(1)) {
-        zeroAttr = builder_.getBoolAttr(false);
-      } else if (llvm::isa<mlir::IntegerType>(elemType)) {
-        zeroAttr = builder_.getIntegerAttr(elemType, 1);
-      } else {
-        zeroAttr = builder_.getF32FloatAttr(1.0f);
-      }
-      initialValueAttr = mlir::DenseElementsAttr::get(type, zeroAttr);
-    }
-
-    return builder_.create<mlir::tosa::VariableOp>(loc, nameAttr, shapeAttr,
-                                                   typeAttr, initialValueAttr);
-  }
-
   template<typename BodyFn>
   mlir::func::FuncOp createFunctionOp(llvm::StringRef baseName, 
                                       llvm::ArrayRef<mlir::Type> inputs,
@@ -390,7 +252,7 @@ public:
     return functionFactory_->createFunctionWithBody("func_" + baseName, inputs, results, bodyFn, insertAtStart);
   }
 
-  void runTosaToGPU() {
+  void runLinalgToGPU() {
     mlir::PassManager pm(&context_);
     PassPipelineConfigurator::buildDefault(pm);
     if (mlir::failed(pm.run(module_))) {
