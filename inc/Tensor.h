@@ -21,6 +21,7 @@
 #include "mlir/IR/Verifier.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "Compiler.h"
@@ -36,9 +37,8 @@ private:
   mlir::RankedTensorType type_;
   std::shared_ptr<T> data_;
 
-  mutable mlir::tosa::VariableOp variableOp_;
-  mutable mlir::tosa::VariableReadOp variableReadOp_;
-  mutable mlir::tosa::VariableWriteOp variableWriteOp_;
+  mutable mlir::Value tensorValue_;
+  mutable bool isInitialized_ = false;
 
 public:
   // Convenience constructor to disambiguate brace-init usage
@@ -52,14 +52,19 @@ public:
             shape_,
             tensor_detail::cToMLIRType(
                 vkml::Compiler::getInstance()->getContext(), typeid(T)))),
-        data_(nullptr), variableWriteOp_(nullptr), variableReadOp_(nullptr) {
-    variableReadOp_ = nullptr;
-    variableWriteOp_ = nullptr;
+        data_(nullptr), tensorValue_(nullptr), isInitialized_(false) {
 
     static int id_counter = 0;
     symbolic_id_ = "tensor_" + std::to_string(id_counter++);
     auto compiler = vkml::Compiler::getInstance();
-    variableOp_ = compiler->createVariable(type_, shape_, symbolic_id_);
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    // Create tensor.empty operation
+    auto scope = compiler->inMainBeforeTerminator();
+    tensorValue_ = builder.create<mlir::tensor::EmptyOp>(
+        loc, type_.getShape(), type_.getElementType()).getResult();
+    isInitialized_ = true;
   }
 
   // Constructor with data initialization
@@ -70,28 +75,61 @@ public:
             shape_,
             tensor_detail::cToMLIRType(
                 vkml::Compiler::getInstance()->getContext(), typeid(T)))),
-        data_(data), variableWriteOp_(nullptr), variableReadOp_(nullptr) {
-    variableReadOp_ = nullptr;
-    variableWriteOp_ = nullptr;
+        data_(data), tensorValue_(nullptr), isInitialized_(false) {
 
     static int id_counter = 0;
     symbolic_id_ = "tensor_" + std::to_string(id_counter++);
     auto compiler = vkml::Compiler::getInstance();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
 
-    // Use the data-aware createVariable if data is provided
+    auto scope = compiler->inMainBeforeTerminator();
+    
+    // Use arith.constant if data is provided, otherwise tensor.empty
     if (data_ != nullptr) {
-      variableOp_ = compiler->createVariableWithData(type_, shape_,
-                                                     symbolic_id_, data_.get());
+      // Calculate total number of elements
+      int64_t numElements = 1;
+      for (auto dim : shape) {
+        numElements *= dim;
+      }
+      
+      // Create DenseElementsAttr from the raw data
+      auto elemType = type_.getElementType();
+      mlir::Attribute initialValueAttr;
+      
+      if constexpr (std::is_same_v<T, float>) {
+        if (elemType.isF32()) {
+          llvm::ArrayRef<float> dataArray(data_.get(), numElements);
+          initialValueAttr = mlir::DenseElementsAttr::get(type_, dataArray);
+        }
+      } else if constexpr (std::is_same_v<T, double>) {
+        if (elemType.isF64()) {
+          llvm::ArrayRef<double> dataArray(data_.get(), numElements);
+          initialValueAttr = mlir::DenseElementsAttr::get(type_, dataArray);
+        }
+      } else if constexpr (std::is_integral_v<T>) {
+        llvm::ArrayRef<T> dataArray(data_.get(), numElements);
+        initialValueAttr = mlir::DenseElementsAttr::get(type_, dataArray);
+      }
+      
+      if (initialValueAttr) {
+        tensorValue_ = builder.create<mlir::arith::ConstantOp>(
+            loc, type_, initialValueAttr).getResult();
+      } else {
+        tensorValue_ = builder.create<mlir::tensor::EmptyOp>(
+            loc, type_.getShape(), type_.getElementType()).getResult();
+      }
     } else {
-      variableOp_ = compiler->createVariable(type_, shape_, symbolic_id_);
+      tensorValue_ = builder.create<mlir::tensor::EmptyOp>(
+          loc, type_.getShape(), type_.getElementType()).getResult();
     }
+    isInitialized_ = true;
   }
 
   // Helper method to set data after construction
   void setData(std::shared_ptr<T> data) {
     data_ = data;
-    // Note: This won't update the MLIR variable's initial value
-    // You'd need to use tosa.variable_write to update it at runtime
+    // Note: This won't update the tensor's value at runtime
   }
 
   // Helper method to get data
@@ -103,27 +141,16 @@ public:
   }
 
 private:
-  inline mlir::tosa::VariableReadOp read() const {
-    if (variableReadOp_ == nullptr) {
-      auto compiler = vkml::Compiler::getInstance();
-      auto scope = compiler->inMainBeforeTerminator();
-      auto &builder = compiler->getBuilder();
-      auto loc = builder.getUnknownLoc();
-      variableReadOp_ = builder.create<mlir::tosa::VariableReadOp>(
-          loc, type_, variableOp_.getNameAttr());
+  inline mlir::Value read() const {
+    if (!isInitialized_ || !tensorValue_) {
+      throw std::runtime_error("Tensor not initialized");
     }
-    return variableReadOp_;
+    return tensorValue_;
   }
 
   inline void write(mlir::Value newValue) {
-    if (variableWriteOp_ == nullptr) {
-      auto compiler = vkml::Compiler::getInstance();
-      auto scope = compiler->inMainBeforeTerminator();
-      auto &builder = compiler->getBuilder();
-      auto loc = builder.getUnknownLoc();
-      variableWriteOp_ = builder.create<mlir::tosa::VariableWriteOp>(
-          loc, variableOp_.getNameAttr(), newValue);
-    }
+    tensorValue_ = newValue;
+    isInitialized_ = true;
   }
 
   template <bool isIncrement> void applyInPlaceIncrementDecrement() {
@@ -151,17 +178,17 @@ private:
     std::array<mlir::Attribute, 1> attrArr{elementAttr};
     auto valueAttr = mlir::DenseElementsAttr::get(
         oneTy, llvm::ArrayRef<mlir::Attribute>(attrArr));
-    auto constOp = builder.create<mlir::tosa::ConstOp>(loc, oneTy, valueAttr);
+    auto constOp = builder.create<mlir::arith::ConstantOp>(loc, oneTy, valueAttr);
     Tensor<T> oneTensor({1});
     oneTensor.write(constOp.getResult());
 
-    // Use existing arithmetic helpers (broadcast will occur via TOSA rules)
+    // Use existing arithmetic helpers (broadcast will occur automatically)
     if constexpr (isIncrement) {
       auto updated = (*this) + oneTensor; // returns new tensor
-      this->write(updated.read().getResult());
+      this->write(updated.read());
     } else {
       auto updated = (*this) - oneTensor;
-      this->write(updated.read().getResult());
+      this->write(updated.read());
     }
   }
 
@@ -178,10 +205,10 @@ public:
     auto loc = builder.getUnknownLoc();
     auto ctx = compiler->getContext();
     llvm::SmallVector<mlir::Type> argTypes;
-    (argTypes.push_back(std::forward<Args>(args).read().getResult().getType()),
+    (argTypes.push_back(std::forward<Args>(args).read().getType()),
      ...);
     llvm::SmallVector<mlir::Value> argValues;
-    (argValues.push_back(std::forward<Args>(args).read().getResult()), ...);
+    (argValues.push_back(std::forward<Args>(args).read()), ...);
     llvm::SmallVector<mlir::ShapedTypeComponents> inferred;
 
     if (mlir::failed(Op::inferReturnTypeComponents(
@@ -217,30 +244,162 @@ public:
   template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   explicit Tensor(const Tensor<U> &other) {
-    auto readOp = other.read();
+    auto readValue = other.read();
     auto &builder = vkml::Compiler::getInstance()->getBuilder();
     auto loc = builder.getUnknownLoc();
     auto ctx = vkml::Compiler::getInstance()->getContext();
-    llvm::SmallVector<mlir::ShapedTypeComponents> inferred;
-    if (mlir::failed(mlir::tosa::CastOp::inferReturnTypeComponents(
-            ctx, std::optional<mlir::Location>{loc},
-            mlir::ValueRange{readOp.getResult()},
-            /*attrs=*/mlir::DictionaryAttr{},
-            /*properties=*/nullptr,
-            /*regions=*/{}, inferred))) {
-      throw std::runtime_error("Op::inferReturnTypes failed");
-    }
+    
     auto elementType = tensor_detail::cToMLIRType(ctx, typeid(T));
-    auto resultType =
-        mlir::RankedTensorType::get(inferred[0].getDims(), elementType);
-    auto castOp =
-        builder.create<mlir::tosa::CastOp>(loc, resultType, readOp.getResult());
-    this->write(castOp.getResult());
+    auto inputType = mlir::cast<mlir::RankedTensorType>(readValue.getType());
+    auto resultType = mlir::RankedTensorType::get(inputType.getShape(), elementType);
+    
+    // Create linalg.generic for cast operation
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, resultType.getShape(), elementType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        inputType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, readValue, emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          mlir::Value casted;
+          if (elementType.isF32() || elementType.isF64()) {
+            casted = b.create<mlir::arith::SIToFPOp>(nestedLoc, elementType, args[0]);
+          } else if (elementType.isInteger(32) || elementType.isInteger(64)) {
+            casted = b.create<mlir::arith::FPToSIOp>(nestedLoc, elementType, args[0]);
+          } else {
+            casted = args[0]; // Same type, no conversion needed
+          }
+          b.create<mlir::linalg::YieldOp>(nestedLoc, casted);
+        });
+    
+    this->write(genericOp.getResult(0));
     this->shapeStorage_ = other.getShape();
     this->shape_ = shapeStorage_;
     this->type_ = resultType;
     this->symbolic_id_ = other.getSymbolicId() + "_casted";
-    this->variableReadOp_ = nullptr;
+  }
+
+  // Helper to create linalg.generic for binary operations
+  template<typename ArithOp, typename U, typename V>
+  static auto linalgBinaryOp(const Tensor<U> &lhs, const Tensor<V> &rhs) {
+    using ResultType = std::common_type_t<U, V>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+    
+    auto lhsValue = lhs.read();
+    auto rhsValue = rhs.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+    
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    
+    // Determine output shape (broadcast semantics)
+    llvm::SmallVector<int64_t> outputShape;
+    int64_t lhsRank = lhsType.getRank();
+    int64_t rhsRank = rhsType.getRank();
+    int64_t maxRank = std::max(lhsRank, rhsRank);
+    
+    for (int64_t i = 0; i < maxRank; ++i) {
+      int64_t lhsDim = (i < lhsRank) ? lhsType.getShape()[lhsRank - 1 - i] : 1;
+      int64_t rhsDim = (i < rhsRank) ? rhsType.getShape()[rhsRank - 1 - i] : 1;
+      outputShape.push_back(std::max(lhsDim, rhsDim));
+    }
+    std::reverse(outputShape.begin(), outputShape.end());
+    
+    auto resultType = mlir::RankedTensorType::get(outputShape, elementType);
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, outputShape, elementType);
+    
+    // Create indexing maps for broadcasting
+    // Helper to create affine map for broadcasting a tensor
+    auto createBroadcastMap = [&](mlir::RankedTensorType tensorType) -> mlir::AffineMap {
+      llvm::SmallVector<mlir::AffineExpr> exprs;
+      int64_t tensorRank = tensorType.getRank();
+      
+      // For each dimension in the result, map to the corresponding input dimension
+      // If input dimension is 1 (broadcast dimension), use dimension 0 of that axis
+      // If input has fewer dimensions, skip those result dimensions
+      for (int64_t i = 0; i < maxRank; ++i) {
+        int64_t inputDimIndex = i - (maxRank - tensorRank);
+        if (inputDimIndex >= 0) {
+          // Check if this dimension needs broadcasting (size 1 in input, size > 1 in output)
+          if (tensorType.getShape()[inputDimIndex] == 1 && outputShape[i] > 1) {
+            // Broadcast dimension - always use index 0
+            exprs.push_back(mlir::getAffineConstantExpr(0, ctx));
+          } else {
+            // Normal dimension - use the loop dimension
+            exprs.push_back(mlir::getAffineDimExpr(i, ctx));
+          }
+        }
+      }
+      return mlir::AffineMap::get(maxRank, 0, exprs, ctx);
+    };
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps;
+    indexingMaps.push_back(createBroadcastMap(lhsType));
+    indexingMaps.push_back(createBroadcastMap(rhsType));
+    indexingMaps.push_back(builder.getMultiDimIdentityMap(maxRank));
+    
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        maxRank, mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, mlir::ValueRange{lhsValue, rhsValue}, 
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto result = b.create<ArithOp>(nestedLoc, args[0], args[1]);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+        });
+    
+    Tensor<ResultType> result(outputShape);
+    result.write(genericOp.getResult(0));
+    return result;
+  }
+
+  // Helper for unary operations
+  template<typename ArithOp, typename V>
+  static auto linalgUnaryOp(const Tensor<V> &input) {
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto inputValue = input.read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto resultType = inputType;
+    
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, inputType.getShape(), inputType.getElementType());
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        inputType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, inputValue, emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto result = b.create<ArithOp>(nestedLoc, args[0]);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+        });
+    
+    Tensor<V> result(input.getShape());
+    result.write(genericOp.getResult(0));
+    return result;
   }
 
   template <typename Op, typename U, typename V>
@@ -269,26 +428,32 @@ public:
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator+(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::AddOp, T, U>(*this, rhs);
+    if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
+      return linalgBinaryOp<mlir::arith::AddIOp, T, U>(*this, rhs);
+    } else {
+      return linalgBinaryOp<mlir::arith::AddFOp, T, U>(*this, rhs);
+    }
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator-(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::SubOp, T, U>(*this, rhs);
+    if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
+      return linalgBinaryOp<mlir::arith::SubIOp, T, U>(*this, rhs);
+    } else {
+      return linalgBinaryOp<mlir::arith::SubFOp, T, U>(*this, rhs);
+    }
   }
 
-  // Unified division operator: integer -> IntDivOp, floating -> reciprocal *
-  // mul
+  // Unified division operator: integer -> DivSIOp, floating -> DivFOp
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator/(const Tensor<U> &rhs) const {
     if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
-      return binaryOpHelper<mlir::tosa::IntDivOp>(*this, rhs);
+      return linalgBinaryOp<mlir::arith::DivSIOp, T, U>(*this, rhs);
     } else if constexpr (std::is_floating_point_v<U> &&
                          std::is_floating_point_v<T>) {
-      auto recip = unaryOpHelper<mlir::tosa::ReciprocalOp>(rhs);
-      return (*this) * recip; // reuse MulOp path
+      return linalgBinaryOp<mlir::arith::DivFOp, T, U>(*this, rhs);
     } else {
       static_assert(std::is_same_v<U, void>,
                     "Mixed integral/floating division not supported");
@@ -298,21 +463,101 @@ public:
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator*(const Tensor<U> &rhs) const {
-    Tensor<uint8_t> scaleTensor(
-        {1}); // scale/shift tensor for tosa.mul signature
-    return ternaryOpHelper<mlir::tosa::MulOp, T, U>(*this, rhs, scaleTensor);
+    if constexpr (std::is_integral_v<U> && std::is_integral_v<T>) {
+      return linalgBinaryOp<mlir::arith::MulIOp, T, U>(*this, rhs);
+    } else {
+      return linalgBinaryOp<mlir::arith::MulFOp, T, U>(*this, rhs);
+    }
   }
 
   Tensor<T> operator+() const {
-    return unaryOpHelper<mlir::tosa::AbsOp, T>(*this);
+    // Unary plus returns absolute value
+    if constexpr (std::is_floating_point_v<T>) {
+      return linalgUnaryOp<mlir::math::AbsFOp, T>(*this);
+    } else {
+      return linalgUnaryOp<mlir::math::AbsIOp, T>(*this);
+    }
   }
-  // Tensor<T> operator-() const { return
-  // unaryOpHelper<mlir::tosa::NegOp>(*this); }
+  
   Tensor<T> operator~() const {
-    return unaryOpHelper<mlir::tosa::BitwiseNotOp, T>(*this);
+    // Bitwise not: XOR with all 1s using linalg.generic
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto elemType = inputType.getElementType();
+    
+    // Create a constant tensor of all 1s (all bits set)
+    int64_t allOnes = -1;
+    auto onesAttr = mlir::DenseElementsAttr::get(inputType, 
+        builder.getIntegerAttr(elemType, allOnes));
+    auto onesConstant = builder.create<mlir::arith::ConstantOp>(
+        loc, inputType, onesAttr);
+    
+    // Use linalg.generic to perform XOR
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, inputType.getShape(), elemType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        inputType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, inputType, mlir::ValueRange{inputValue, onesConstant.getResult()},
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto xorResult = b.create<mlir::arith::XOrIOp>(nestedLoc, args[0], args[1]);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, xorResult.getResult());
+        });
+    
+    Tensor<T> result(this->getShape());
+    result.write(genericOp.getResult(0));
+    return result;
   }
+  
   Tensor<T> operator!() const {
-    return unaryOpHelper<mlir::tosa::LogicalNotOp, T>(*this);
+    // Logical not for boolean/integer types
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, inputType.getShape(), inputType.getElementType());
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(inputType.getRank()),
+        builder.getMultiDimIdentityMap(inputType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        inputType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, inputType, inputValue, emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto zero = b.create<mlir::arith::ConstantIntOp>(nestedLoc, 0, 
+              inputType.getElementType().getIntOrFloatBitWidth());
+          auto cmp = b.create<mlir::arith::CmpIOp>(nestedLoc, 
+              mlir::arith::CmpIPredicate::eq, args[0], zero);
+          auto result = b.create<mlir::arith::ExtUIOp>(nestedLoc, 
+              inputType.getElementType(), cmp);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+        });
+    
+    Tensor<T> result(this->getShape());
+    result.write(genericOp.getResult(0));
+    return result;
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<T> &&
@@ -327,64 +572,192 @@ public:
                             std::is_integral_v<U> && std::is_integral_v<T> &&
                             std::is_unsigned_v<U> && std::is_unsigned_v<T>>>
   auto operator&(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::BitwiseAndOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::AndIOp, T, U>(*this, rhs);
   }
   template <typename U, typename = std::enable_if_t<
                             std::is_integral_v<U> && std::is_integral_v<T> &&
                             std::is_unsigned_v<U> && std::is_unsigned_v<T>>>
   auto operator|(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::BitwiseOrOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::OrIOp, T, U>(*this, rhs);
   }
   template <typename U, typename = std::enable_if_t<
                             std::is_integral_v<U> && std::is_integral_v<T> &&
                             std::is_unsigned_v<U> && std::is_unsigned_v<T>>>
   auto operator^(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::BitwiseXorOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::XOrIOp, T, U>(*this, rhs);
   }
 
   template <typename U, typename = std::enable_if_t<
                             std::is_integral_v<U> && std::is_integral_v<T> &&
                             std::is_unsigned_v<U> && std::is_unsigned_v<T>>>
   auto operator<<(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::LogicalLeftShiftOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::ShLIOp, T, U>(*this, rhs);
   }
   template <typename U, typename = std::enable_if_t<
                             std::is_integral_v<U> && std::is_integral_v<T> &&
                             std::is_unsigned_v<U> && std::is_unsigned_v<T>>>
   auto operator>>(const Tensor<U> &rhs) const {
-    return binaryOpHelper<mlir::tosa::LogicalRightShiftOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::ShRUIOp, T, U>(*this, rhs);
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator&&(const Tensor<U> &rhs) const {
-    return logicalOpHelper<mlir::tosa::LogicalAndOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::AndIOp, T, U>(*this, rhs);
   }
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator||(const Tensor<U> &rhs) const {
-    return logicalOpHelper<mlir::tosa::LogicalOrOp, T, U>(*this, rhs);
+    return linalgBinaryOp<mlir::arith::OrIOp, T, U>(*this, rhs);
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator==(const Tensor<U> &rhs) const {
-    return logicalOpHelper<mlir::tosa::EqualOp, T, U>(*this, rhs);
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto lhsValue = this->read();
+    auto rhsValue = rhs.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+    
+    // Result is boolean tensor
+    auto boolType = builder.getI1Type();
+    auto resultType = mlir::RankedTensorType::get(lhsType.getShape(), boolType);
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, lhsType.getShape(), boolType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        lhsType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, mlir::ValueRange{lhsValue, rhsValue}, 
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          mlir::Value cmp;
+          if (lhsType.getElementType().isIntOrIndex()) {
+            cmp = b.create<mlir::arith::CmpIOp>(nestedLoc, 
+                mlir::arith::CmpIPredicate::eq, args[0], args[1]);
+          } else {
+            cmp = b.create<mlir::arith::CmpFOp>(nestedLoc, 
+                mlir::arith::CmpFPredicate::OEQ, args[0], args[1]);
+          }
+          b.create<mlir::linalg::YieldOp>(nestedLoc, cmp);
+        });
+    
+    Tensor<bool> result(std::vector<int64_t>(lhsType.getShape().begin(), 
+                                             lhsType.getShape().end()));
+    result.write(genericOp.getResult(0));
+    return result;
   }
+  
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator!=(const Tensor<U> &rhs) const {
     return !(*this == rhs);
   }
+  
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator>(const Tensor<U> &rhs) const {
-    return logicalOpHelper<mlir::tosa::GreaterOp, T, U>(*this, rhs);
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto lhsValue = this->read();
+    auto rhsValue = rhs.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    
+    auto boolType = builder.getI1Type();
+    auto resultType = mlir::RankedTensorType::get(lhsType.getShape(), boolType);
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, lhsType.getShape(), boolType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        lhsType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, mlir::ValueRange{lhsValue, rhsValue}, 
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          mlir::Value cmp;
+          if (lhsType.getElementType().isIntOrIndex()) {
+            cmp = b.create<mlir::arith::CmpIOp>(nestedLoc, 
+                mlir::arith::CmpIPredicate::sgt, args[0], args[1]);
+          } else {
+            cmp = b.create<mlir::arith::CmpFOp>(nestedLoc, 
+                mlir::arith::CmpFPredicate::OGT, args[0], args[1]);
+          }
+          b.create<mlir::linalg::YieldOp>(nestedLoc, cmp);
+        });
+    
+    Tensor<bool> result(std::vector<int64_t>(lhsType.getShape().begin(), 
+                                             lhsType.getShape().end()));
+    result.write(genericOp.getResult(0));
+    return result;
   }
+  
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
                                                     std::is_arithmetic_v<T>>>
   auto operator>=(const Tensor<U> &rhs) const {
-    return logicalOpHelper<mlir::tosa::GreaterEqualOp, T, U>(*this, rhs);
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    
+    auto lhsValue = this->read();
+    auto rhsValue = rhs.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    
+    auto boolType = builder.getI1Type();
+    auto resultType = mlir::RankedTensorType::get(lhsType.getShape(), boolType);
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, lhsType.getShape(), boolType);
+    
+    llvm::SmallVector<mlir::AffineMap> indexingMaps = {
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank()),
+        builder.getMultiDimIdentityMap(lhsType.getRank())
+    };
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        lhsType.getRank(), mlir::utils::IteratorType::parallel);
+    
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, mlir::ValueRange{lhsValue, rhsValue}, 
+        emptyTensor.getResult(),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          mlir::Value cmp;
+          if (lhsType.getElementType().isIntOrIndex()) {
+            cmp = b.create<mlir::arith::CmpIOp>(nestedLoc, 
+                mlir::arith::CmpIPredicate::sge, args[0], args[1]);
+          } else {
+            cmp = b.create<mlir::arith::CmpFOp>(nestedLoc, 
+                mlir::arith::CmpFPredicate::OGE, args[0], args[1]);
+          }
+          b.create<mlir::linalg::YieldOp>(nestedLoc, cmp);
+        });
+    
+    Tensor<bool> result(std::vector<int64_t>(lhsType.getShape().begin(), 
+                                             lhsType.getShape().end()));
+    result.write(genericOp.getResult(0));
+    return result;
   }
 
   template <typename U, typename = std::enable_if_t<std::is_arithmetic_v<U> &&
@@ -458,52 +831,35 @@ public:
     auto loc = builder.getUnknownLoc();
     auto ctx = vkml::Compiler::getInstance()->getContext();
 
-    // Build start and size vectors (rank = original rank)
+    // Build offsets, sizes, and strides for tensor.extract_slice
     const int rank = static_cast<int>(shape_.size());
-    std::vector<int64_t> start(rank, 0);
-    start[0] = static_cast<int64_t>(index);
-    std::vector<int64_t> size(shape_.begin(), shape_.end());
-    size[0] = 1; // single slice along first dim
-
-    // Create TOSA shape operands as tosa.const (since we don't yet wrap
-    // tosa.shape values). Represent them as !tosa.shape<rank> which expects
-    // ranked shape type.
-    auto shapeType = mlir::tosa::shapeType::get(ctx, rank);
-
-    // Helper lambda to materialize a shape const using DenseIntElementsAttr.
-    auto makeShapeConst = [&](const std::vector<int64_t> &vals) {
-      // Represent as a 1D tensor of i64 for the DenseIntElementsAttr then rely
-      // on implicit conversion in builder.
-      auto int64Ty = builder.getIntegerType(64, mlir::IntegerType::Signed);
-      auto tensorTy = mlir::RankedTensorType::get(
-          {static_cast<long>(vals.size())}, int64Ty);
-      llvm::SmallVector<int64_t> copy(vals.begin(), vals.end());
-      auto denseAttr = mlir::DenseIntElementsAttr::get(tensorTy, copy);
-      return builder.create<mlir::tosa::ConstShapeOp>(loc, shapeType,
-                                                      denseAttr);
-    };
-
-    auto startOp = makeShapeConst(start);
-    auto sizeOp = makeShapeConst(size);
-
-    // Infer result type: it should have same rank as input (TOSA slice keeps
-    // rank) then we manually drop dim0 for API semantics. We'll still emit the
-    // slice with original rank result; after emission we wrap a Tensor<T> whose
-    // shape excludes the first dim.
-    llvm::SmallVector<mlir::ShapedTypeComponents> inferred;
-    if (mlir::failed(mlir::tosa::SliceOp::inferReturnTypeComponents(
-            ctx, std::optional<mlir::Location>{loc},
-            mlir::ValueRange{this->read().getResult(), startOp.getResult(),
-                             sizeOp.getResult()},
-            mlir::DictionaryAttr{}, nullptr, {}, inferred))) {
-      throw std::runtime_error("SliceOp::inferReturnTypeComponents failed");
+    llvm::SmallVector<mlir::OpFoldResult> offsets;
+    llvm::SmallVector<mlir::OpFoldResult> sizes;
+    llvm::SmallVector<mlir::OpFoldResult> strides;
+    
+    // First dimension: extract at index
+    offsets.push_back(builder.getI64IntegerAttr(static_cast<int64_t>(index)));
+    sizes.push_back(builder.getI64IntegerAttr(1));
+    strides.push_back(builder.getI64IntegerAttr(1));
+    
+    // Remaining dimensions: full range
+    for (int i = 1; i < rank; ++i) {
+      offsets.push_back(builder.getI64IntegerAttr(0));
+      sizes.push_back(builder.getI64IntegerAttr(shape_[i]));
+      strides.push_back(builder.getI64IntegerAttr(1));
     }
-    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(T));
-    auto fullResultType =
-        mlir::RankedTensorType::get(inferred[0].getDims(), elementType);
-    auto sliceOp = builder.create<mlir::tosa::SliceOp>(
-        loc, fullResultType, this->read().getResult(), startOp.getResult(),
-        sizeOp.getResult());
+    
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto elementType = inputType.getElementType();
+    
+    // Result shape with size 1 in first dimension
+    llvm::SmallVector<int64_t> slicedShape(shape_.begin(), shape_.end());
+    slicedShape[0] = 1;
+    auto slicedType = mlir::RankedTensorType::get(slicedShape, elementType);
+    
+    auto extractSliceOp = builder.create<mlir::tensor::ExtractSliceOp>(
+        loc, slicedType, inputValue, offsets, sizes, strides);
 
     // Build reduced-rank shape for API (drop first dim)
     std::vector<int64_t> reducedShape;
@@ -511,7 +867,7 @@ public:
     for (size_t i = 1; i < shape_.size(); ++i)
       reducedShape.push_back(shape_[i]);
     Tensor<T> result(reducedShape);
-    result.write(sliceOp.getResult());
+    result.write(extractSliceOp.getResult());
     return result;
   }
 
