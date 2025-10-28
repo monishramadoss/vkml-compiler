@@ -21,6 +21,7 @@
 #include "mlir/IR/Verifier.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include "Compiler.h"

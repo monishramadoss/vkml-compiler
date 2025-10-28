@@ -87,6 +87,7 @@ target_link_libraries(vkml-compiler
 	"MLIRMemRefDialect"
 	"MLIRLinalgDialect"
 	"MLIRTensorDialect"
+	"MLIRMathDialect"
 
 	"MLIRFuncInlinerExtension"
 	 

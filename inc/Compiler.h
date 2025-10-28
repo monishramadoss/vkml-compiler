@@ -46,6 +46,7 @@ static auto cToMLIRType = [](mlir::MLIRContext *ctx,
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MLProgram/IR/MLProgram.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
@@ -202,6 +203,7 @@ private:
     context_.loadDialect<mlir::memref::MemRefDialect>();
     context_.loadDialect<mlir::bufferization::BufferizationDialect>();
     context_.loadDialect<mlir::linalg::LinalgDialect>();
+    context_.loadDialect<mlir::math::MathDialect>();
 
     module_ = mlir::ModuleOp::create(builder_.getUnknownLoc());
     builder_.setInsertionPointToStart(module_.getBody());
