@@ -39,7 +39,6 @@ jobs:
       with:
         path: |
           build/x64-debug-linux/llvm
-          build/x64-debug-linux/lib/cmake
         key: ${{ runner.os }}-llvm-${{ hashFiles('llvm/**') }}
         restore-keys: |
           ${{ runner.os }}-llvm-
