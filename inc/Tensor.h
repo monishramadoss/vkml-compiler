@@ -249,7 +249,7 @@ public:
     auto ctx = vkml::Compiler::getInstance()->getContext();
     
     auto elementType = tensor_detail::cToMLIRType(ctx, typeid(T));
-    auto inputType = readValue.getType().cast<mlir::RankedTensorType>();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(readValue.getType());
     auto resultType = mlir::RankedTensorType::get(inputType.getShape(), elementType);
     
     // Create linalg.generic for cast operation
@@ -296,8 +296,8 @@ public:
     
     auto lhsValue = lhs.read();
     auto rhsValue = rhs.read();
-    auto lhsType = lhsValue.getType().cast<mlir::RankedTensorType>();
-    auto rhsType = rhsValue.getType().cast<mlir::RankedTensorType>();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
     
     auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
     
@@ -349,7 +349,7 @@ public:
     auto loc = builder.getUnknownLoc();
     
     auto inputValue = input.read();
-    auto inputType = inputValue.getType().cast<mlir::RankedTensorType>();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
     auto resultType = inputType;
     
     auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
@@ -459,7 +459,7 @@ public:
     auto loc = builder.getUnknownLoc();
     
     auto inputValue = this->read();
-    auto inputType = inputValue.getType().cast<mlir::RankedTensorType>();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
     auto elemType = inputType.getElementType();
     
     // Create a constant tensor of all 1s (all bits set)
@@ -502,7 +502,7 @@ public:
     auto loc = builder.getUnknownLoc();
     
     auto inputValue = this->read();
-    auto inputType = inputValue.getType().cast<mlir::RankedTensorType>();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
     auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
         loc, inputType.getShape(), inputType.getElementType());
     
@@ -591,8 +591,8 @@ public:
     
     auto lhsValue = this->read();
     auto rhsValue = rhs.read();
-    auto lhsType = lhsValue.getType().cast<mlir::RankedTensorType>();
-    auto rhsType = rhsValue.getType().cast<mlir::RankedTensorType>();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
     
     // Result is boolean tensor
     auto boolType = builder.getI1Type();
@@ -645,7 +645,7 @@ public:
     
     auto lhsValue = this->read();
     auto rhsValue = rhs.read();
-    auto lhsType = lhsValue.getType().cast<mlir::RankedTensorType>();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
     
     auto boolType = builder.getI1Type();
     auto resultType = mlir::RankedTensorType::get(lhsType.getShape(), boolType);
@@ -691,7 +691,7 @@ public:
     
     auto lhsValue = this->read();
     auto rhsValue = rhs.read();
-    auto lhsType = lhsValue.getType().cast<mlir::RankedTensorType>();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
     
     auto boolType = builder.getI1Type();
     auto resultType = mlir::RankedTensorType::get(lhsType.getShape(), boolType);
@@ -818,7 +818,7 @@ public:
     }
     
     auto inputValue = this->read();
-    auto inputType = inputValue.getType().cast<mlir::RankedTensorType>();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
     auto elementType = inputType.getElementType();
     
     // Result shape with size 1 in first dimension
