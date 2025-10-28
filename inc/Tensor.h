@@ -128,8 +128,7 @@ public:
   // Helper method to set data after construction
   void setData(std::shared_ptr<T> data) {
     data_ = data;
-    // Note: This won't update the MLIR variable's initial value
-    // You'd need to use tosa.variable_write to update it at runtime
+    // Note: This won't update the tensor's value at runtime
   }
 
   // Helper method to get data
@@ -182,13 +181,13 @@ private:
     Tensor<T> oneTensor({1});
     oneTensor.write(constOp.getResult());
 
-    // Use existing arithmetic helpers (broadcast will occur via TOSA rules)
+    // Use existing arithmetic helpers (broadcast will occur automatically)
     if constexpr (isIncrement) {
       auto updated = (*this) + oneTensor; // returns new tensor
-      this->write(updated.read().getResult());
+      this->write(updated.read());
     } else {
       auto updated = (*this) - oneTensor;
-      this->write(updated.read().getResult());
+      this->write(updated.read());
     }
   }
 

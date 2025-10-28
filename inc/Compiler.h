@@ -50,20 +50,16 @@ static auto cToMLIRType = [](mlir::MLIRContext *ctx,
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
-#include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Pass/PassManager.h"
 
 #include <iostream>
 
 #include "mlir/Conversion/GPUToSPIRV/GPUToSPIRVPass.h"
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
-#include "mlir/Conversion/TosaToArith/TosaToArith.h"
-#include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
 #include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 
 #include "mlir/Conversion/Passes.h"
-#include "mlir/Conversion/TosaToMLProgram/TosaToMLProgram.h"
 #include "mlir/Transforms/Passes.h"
 
 #include "mlir/Dialect/Bufferization/Transforms/OneShotAnalysis.h"
@@ -89,12 +85,7 @@ class PassPipelineConfigurator {
 public:
   static void buildDefault(mlir::PassManager &pm) {
     pm.addPass(mlir::createCanonicalizerPass());
-    pm.addPass(mlir::createTosaToMLProgram());
     pm.addPass(mlir::createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::tosa::createTosaToLinalg());
-    pm.addPass(mlir::createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::createTosaToArithPass());
-    pm.addNestedPass<mlir::func::FuncOp>(mlir::createTosaToSCFPass());
     pm.addPass(mlir::createCanonicalizerPass());
     mlir::bufferization::OneShotBufferizePassOptions opts;
     opts.bufferizeFunctionBoundaries = true;
@@ -202,7 +193,6 @@ private:
     context_.appendDialectRegistry(registry);
 
     // Load all the dialects
-    context_.loadDialect<mlir::tosa::TosaDialect>();
     context_.loadDialect<mlir::func::FuncDialect>();
     context_.loadDialect<mlir::ml_program::MLProgramDialect>();
     context_.loadDialect<mlir::gpu::GPUDialect>();
@@ -260,7 +250,7 @@ public:
     return functionFactory_->createFunctionWithBody("func_" + baseName, inputs, results, bodyFn, insertAtStart);
   }
 
-  void runTosaToGPU() {
+  void runLinalgToGPU() {
     mlir::PassManager pm(&context_);
     PassPipelineConfigurator::buildDefault(pm);
     if (mlir::failed(pm.run(module_))) {

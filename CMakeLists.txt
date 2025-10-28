@@ -75,41 +75,25 @@ target_link_libraries(vkml-compiler
     "MLIRTransforms"
     "MLIRAnalysis"
 
- 	# "MLIRTensorAllExtensions" 
- 	# "MLIRTensorDialect" 
- 	# "MLIRTensorInferTypeOpInterfaceImpl"
- 	# "MLIRTensorMeshShardingExtensions" 
- 	# "MLIRTensorTilingInterfaceImpl"
 	"MLIRTensorToLinalg" 
 	"MLIRMLProgramTransforms"
 	"MLIRTensorTransformOps"
 	
-	# 	"MLIRTensorToSPIRV" 
-	
 	"MLIRFuncDialect"
-	"MLIRTosaDialect" 
 	"MLIRMLProgramDialect"
-	"MLIRFuncDialect"
 	"MLIRGPUDialect"	
 	"MLIRSCFDialect"
 	"MLIRArithDialect"
 	"MLIRMemRefDialect"
+	"MLIRLinalgDialect"
+	"MLIRTensorDialect"
 
 	"MLIRFuncInlinerExtension"
 	 
-	"MLIRTosaTransforms"
 	"MLIRGPUTransforms"
+	"MLIRLinalgTransforms"
 	
-	"MLIRTosaToMLProgram"
-	"MLIRTosaToLinalg" 
-	"MLIRTosaToArith"
-	"MLIRTosaToTensor"
-	"MLIRTosaToSCF"
-# 	"MLIRTosaShardingInterfaceImpl"
 	"MLIRSCFToGPU"
-# 	"MLIRSPIRVDialect"
-# 	"MLIRAffineToStandard"
-# 	"MLIRBufferizationToMemRef"
 )
 
 target_include_directories(vkml-compiler 
