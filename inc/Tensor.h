@@ -320,9 +320,33 @@ public:
         loc, outputShape, elementType);
     
     // Create indexing maps for broadcasting
+    // Helper to create affine map for broadcasting a tensor
+    auto createBroadcastMap = [&](mlir::RankedTensorType tensorType) -> mlir::AffineMap {
+      llvm::SmallVector<mlir::AffineExpr> exprs;
+      int64_t tensorRank = tensorType.getRank();
+      
+      // For each dimension in the result, map to the corresponding input dimension
+      // If input dimension is 1 (broadcast dimension), use dimension 0 of that axis
+      // If input has fewer dimensions, skip those result dimensions
+      for (int64_t i = 0; i < maxRank; ++i) {
+        int64_t inputDimIndex = i - (maxRank - tensorRank);
+        if (inputDimIndex >= 0) {
+          // Check if this dimension needs broadcasting (size 1 in input, size > 1 in output)
+          if (tensorType.getShape()[inputDimIndex] == 1 && outputShape[i] > 1) {
+            // Broadcast dimension - always use index 0
+            exprs.push_back(mlir::getAffineConstantExpr(0, ctx));
+          } else {
+            // Normal dimension - use the loop dimension
+            exprs.push_back(mlir::getAffineDimExpr(i, ctx));
+          }
+        }
+      }
+      return mlir::AffineMap::get(maxRank, 0, exprs, ctx);
+    };
+    
     llvm::SmallVector<mlir::AffineMap> indexingMaps;
-    indexingMaps.push_back(builder.getMultiDimIdentityMap(maxRank));
-    indexingMaps.push_back(builder.getMultiDimIdentityMap(maxRank));
+    indexingMaps.push_back(createBroadcastMap(lhsType));
+    indexingMaps.push_back(createBroadcastMap(rhsType));
     indexingMaps.push_back(builder.getMultiDimIdentityMap(maxRank));
     
     llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
