@@ -291,6 +291,7 @@ public:
   static auto linalgBinaryOp(const Tensor<U> &lhs, const Tensor<V> &rhs) {
     using ResultType = std::common_type_t<U, V>;
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     auto ctx = compiler->getContext();
@@ -370,6 +371,7 @@ public:
   template<typename ArithOp, typename V>
   static auto linalgUnaryOp(const Tensor<V> &input) {
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
@@ -480,6 +482,7 @@ public:
   Tensor<T> operator~() const {
     // Bitwise not: XOR with all 1s using linalg.generic
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
@@ -523,6 +526,7 @@ public:
   Tensor<T> operator!() const {
     // Logical not for boolean/integer types
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
@@ -611,6 +615,7 @@ public:
                                                     std::is_arithmetic_v<T>>>
   auto operator==(const Tensor<U> &rhs) const {
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
@@ -665,6 +670,7 @@ public:
                                                     std::is_arithmetic_v<T>>>
   auto operator>(const Tensor<U> &rhs) const {
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
@@ -711,6 +717,7 @@ public:
                                                     std::is_arithmetic_v<T>>>
   auto operator>=(const Tensor<U> &rhs) const {
     auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
