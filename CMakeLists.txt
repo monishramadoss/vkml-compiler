@@ -133,3 +133,9 @@ if(TOOLS)
 	add_subdirectory(tools)
 endif()
 
+# IREE integration test
+add_executable(test-iree-integration test_iree_integration.cpp)
+target_link_libraries(test-iree-integration PRIVATE iree_runtime_unified)
+target_include_directories(test-iree-integration PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/iree/runtime/src)
+
