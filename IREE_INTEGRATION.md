@@ -92,7 +92,7 @@ target_link_libraries(your_target PRIVATE iree_runtime_unified)
 
 3. Add the include directory:
 ```cmake
-target_include_directories(your_target PRIVATE ${CMAKE_SOURCE_DIR}/iree/runtime/src)
+target_include_directories(your_target PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/iree/runtime/src)
 ```
 
 ## Architecture
