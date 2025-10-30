@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 cmake_policy(SET CMP0048 NEW)
 project(vkml-compiler VERSION 0.1.0 LANGUAGES CXX)
 
@@ -36,6 +36,20 @@ set(LLVM_BUILD_INSTRUMENTED_COVERAGE OFF CACHE BOOL "")
 set(LLVM_TARGETS_TO_BUILD "" CACHE STRING "")
 set(LLVM_EXPERIMENTAL_TARGETS_TO_BUILD "SPIRV" CACHE STRING "")
 
+# IREE configuration options
+set(IREE_BUILD_COMPILER ON CACHE BOOL "")
+set(IREE_BUILD_TESTS OFF CACHE BOOL "")
+set(IREE_BUILD_DOCS OFF CACHE BOOL "")
+set(IREE_BUILD_SAMPLES OFF CACHE BOOL "")
+set(IREE_BUILD_PYTHON_BINDINGS OFF CACHE BOOL "")
+set(IREE_BUILD_TRACY OFF CACHE BOOL "")
+set(IREE_BUILD_BUNDLED_LLVM OFF CACHE BOOL "")
+set(IREE_ENABLE_RUNTIME_TRACING OFF CACHE BOOL "")
+set(IREE_ENABLE_COMPILER_TRACING OFF CACHE BOOL "")
+set(IREE_BUILD_BINDINGS_TFLITE OFF CACHE BOOL "")
+set(IREE_BUILD_BINDINGS_TFLITE_JAVA OFF CACHE BOOL "")
+set(IREE_BUILD_ALL_CHECK_TEST_MODULES OFF CACHE BOOL "")
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/llvm/llvm EXCLUDE_FROM_ALL)
 set(MLIR_CMAKE_DIR ${CMAKE_BINARY_DIR}/lib/cmake/mlir)
 set(LLVM_CMAKE_DIR ${CMAKE_BINARY_DIR}/llvm/llvm/lib/cmake/llvm)
@@ -47,10 +61,15 @@ include(TableGen)
 include(AddMLIR)
 include(HandleLLVMOptions)
 
+# Add IREE subdirectory after LLVM/MLIR
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/iree EXCLUDE_FROM_ALL)
+
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/tablegen)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/iree/compiler/src)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/iree/compiler/src)
 
 add_subdirectory(lib)
 
