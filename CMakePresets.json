@@ -182,6 +182,7 @@
     "buildPresets": [
         {
             "name": "tools",
+            "configurePreset": "x64-debug-linux",
             "targets": [
                 "vkml-opt",
                 "vkml-translate"
