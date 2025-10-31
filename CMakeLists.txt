@@ -36,13 +36,14 @@ set(LLVM_BUILD_INSTRUMENTED_COVERAGE OFF CACHE BOOL "")
 set(LLVM_TARGETS_TO_BUILD "" CACHE STRING "")
 set(LLVM_EXPERIMENTAL_TARGETS_TO_BUILD "SPIRV" CACHE STRING "")
 
-# IREE configuration options
-set(IREE_BUILD_COMPILER OFF CACHE BOOL "")
+# IREE configuration options - build compiler only, use existing LLVM
+set(IREE_BUILD_COMPILER ON CACHE BOOL "")
 set(IREE_BUILD_TESTS OFF CACHE BOOL "")
 set(IREE_BUILD_DOCS OFF CACHE BOOL "")
 set(IREE_BUILD_SAMPLES OFF CACHE BOOL "")
 set(IREE_BUILD_PYTHON_BINDINGS OFF CACHE BOOL "")
 set(IREE_BUILD_TRACY OFF CACHE BOOL "")
+set(IREE_BUILD_BUNDLED_LLVM OFF CACHE BOOL "")
 set(IREE_ENABLE_RUNTIME_TRACING OFF CACHE BOOL "")
 set(IREE_ENABLE_COMPILER_TRACING OFF CACHE BOOL "")
 set(IREE_BUILD_BINDINGS_TFLITE OFF CACHE BOOL "")
@@ -132,10 +133,4 @@ target_include_directories(vkml-test-app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc
 if(TOOLS)
 	add_subdirectory(tools)
 endif()
-
-# IREE integration test
-add_executable(test-iree-integration test_iree_integration.cpp)
-target_link_libraries(test-iree-integration PRIVATE iree_runtime_unified)
-target_include_directories(test-iree-integration PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/iree/runtime/src)
 

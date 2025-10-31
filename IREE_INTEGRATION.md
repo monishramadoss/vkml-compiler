@@ -24,7 +24,8 @@ git submodule update --init --recursive iree
 
 The following IREE build options are configured in `CMakeLists.txt`:
 
-- `IREE_BUILD_COMPILER`: OFF - Compiler is disabled to avoid conflicts with the existing LLVM/MLIR build
+- `IREE_BUILD_COMPILER`: ON - Compiler components are enabled
+- `IREE_BUILD_BUNDLED_LLVM`: OFF - Uses the existing vkml-compiler LLVM/MLIR build
 - `IREE_BUILD_TESTS`: OFF - Tests are disabled
 - `IREE_BUILD_DOCS`: OFF - Documentation build is disabled
 - `IREE_BUILD_SAMPLES`: OFF - Sample projects are disabled
@@ -33,13 +34,13 @@ The following IREE build options are configured in `CMakeLists.txt`:
 - `IREE_ENABLE_RUNTIME_TRACING`: OFF - Runtime tracing is disabled
 - `IREE_ENABLE_COMPILER_TRACING`: OFF - Compiler tracing is disabled
 
-### Runtime Components
+### Compiler Components
 
-The IREE runtime is built and available for use. Key components include:
+The IREE compiler is built and available for use. Key components include:
 
-- **HAL Drivers**: local-sync, local-task, null, vulkan
-- **Executable Loaders**: embedded-elf, system-library, vmvx-module
-- **Runtime API**: Available through `iree/runtime/api.h`
+- **IREE Compiler Dialects**: Access to IREE's MLIR dialects and transformations
+- **Code Generation**: IREE's codegen pipelines for various backends
+- **Compiler API**: Available through IREE compiler headers
 
 ### CMake Requirements
 
@@ -55,60 +56,42 @@ To build the project with IREE:
 # Configure
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
 
-# Build the runtime
-ninja -C build iree_runtime_unified
-
-# Build the test application
-ninja -C build test-iree-integration
-```
-
-### Testing the Integration
-
-A test program `test_iree_integration.cpp` demonstrates basic IREE runtime usage:
-
-```bash
-# Run the integration test
-./build/test-iree-integration
-```
-
-Expected output:
-```
-IREE runtime instance created successfully!
+# Build the compiler components
+ninja -C build
 ```
 
 ## Library Usage
 
-To use IREE in your code:
+To use IREE compiler components in your code:
 
-1. Include the runtime API:
+1. Include the compiler API:
 ```cpp
-#include "iree/runtime/api.h"
+#include "iree/compiler/..." // Specific headers as needed
 ```
 
-2. Link against the IREE runtime library:
+2. Link against the IREE compiler libraries:
 ```cmake
-target_link_libraries(your_target PRIVATE iree_runtime_unified)
+target_link_libraries(your_target PRIVATE iree_compiler_...)
 ```
 
 3. Add the include directory:
 ```cmake
-target_include_directories(your_target PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/iree/runtime/src)
+target_include_directories(your_target PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/iree/compiler/src)
 ```
 
 ## Architecture
 
 The integration follows this structure:
-- vkml-compiler builds its own LLVM/MLIR (required for the compiler)
-- IREE builds only its runtime (no compiler to avoid duplicate LLVM builds)
-- Both can coexist and be used together in the same project
+- vkml-compiler builds its own LLVM/MLIR
+- IREE compiler uses the existing LLVM/MLIR (no duplicate builds)
+- IREE compiler components are available for code generation and transformation
 
 ## Future Enhancements
 
 Potential future improvements:
-- Enable IREE compiler support with shared LLVM/MLIR
 - Add IREE dialect support to vkml-compiler
 - Integrate IREE code generation backends
-- Add support for IREE's HAL (Hardware Abstraction Layer) in compilation pipeline
+- Add support for IREE's compiler transformations in the compilation pipeline
 
 ## References
 
