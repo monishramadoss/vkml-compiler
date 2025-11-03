@@ -126,6 +126,303 @@ TEST_F(TensorTest, BroadcastOperation) {
     EXPECT_GT(shape.size(), 0);
 }
 
+// Test tensor division operation (floating point)
+TEST_F(TensorTest, TensorDivisionFloat) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 / tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test tensor division operation (integer)
+TEST_F(TensorTest, TensorDivisionInt) {
+    Tensor<int32_t> tensor1({2, 3});
+    Tensor<int32_t> tensor2({2, 3});
+    
+    auto result = tensor1 / tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test tensor modulo operation
+TEST_F(TensorTest, TensorModulo) {
+    Tensor<int32_t> tensor1({2, 3});
+    Tensor<int32_t> tensor2({2, 3});
+    
+    auto result = tensor1 % tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test bitwise AND operation
+TEST_F(TensorTest, TensorBitwiseAnd) {
+    Tensor<uint32_t> tensor1({2, 3});
+    Tensor<uint32_t> tensor2({2, 3});
+    
+    auto result = tensor1 & tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test bitwise OR operation
+TEST_F(TensorTest, TensorBitwiseOr) {
+    Tensor<uint32_t> tensor1({2, 3});
+    Tensor<uint32_t> tensor2({2, 3});
+    
+    auto result = tensor1 | tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test bitwise XOR operation
+TEST_F(TensorTest, TensorBitwiseXor) {
+    Tensor<uint32_t> tensor1({2, 3});
+    Tensor<uint32_t> tensor2({2, 3});
+    
+    auto result = tensor1 ^ tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test bitwise NOT operation
+TEST_F(TensorTest, TensorBitwiseNot) {
+    Tensor<uint32_t> tensor({2, 3});
+    
+    auto result = ~tensor;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test left shift operation
+TEST_F(TensorTest, TensorLeftShift) {
+    Tensor<uint32_t> tensor1({2, 3});
+    Tensor<uint32_t> tensor2({2, 3});
+    
+    auto result = tensor1 << tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test right shift operation
+TEST_F(TensorTest, TensorRightShift) {
+    Tensor<uint32_t> tensor1({2, 3});
+    Tensor<uint32_t> tensor2({2, 3});
+    
+    auto result = tensor1 >> tensor2;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test logical AND operation
+TEST_F(TensorTest, TensorLogicalAnd) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 && tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test logical OR operation
+TEST_F(TensorTest, TensorLogicalOr) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 || tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test logical NOT operation
+TEST_F(TensorTest, TensorLogicalNot) {
+    Tensor<float> tensor({2, 3});
+    
+    auto result = !tensor;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test equality comparison
+TEST_F(TensorTest, TensorEqual) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 == tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test inequality comparison
+TEST_F(TensorTest, TensorNotEqual) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 != tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test greater than comparison
+TEST_F(TensorTest, TensorGreaterThan) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 > tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test greater than or equal comparison
+TEST_F(TensorTest, TensorGreaterEqual) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 >= tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test less than comparison
+TEST_F(TensorTest, TensorLessThan) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 < tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test less than or equal comparison
+TEST_F(TensorTest, TensorLessEqual) {
+    Tensor<float> tensor1({2, 3});
+    Tensor<float> tensor2({2, 3});
+    
+    auto result = tensor1 <= tensor2;
+    
+    auto shape = result.getShape();
+    EXPECT_GT(shape.size(), 0);
+}
+
+// Test unary plus (abs) operation
+TEST_F(TensorTest, TensorUnaryPlus) {
+    Tensor<float> tensor({2, 3});
+    
+    auto result = +tensor;
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test prefix increment operation
+TEST_F(TensorTest, TensorPrefixIncrement) {
+    Tensor<float> tensor({2, 3});
+    
+    ++tensor;
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test postfix increment operation
+TEST_F(TensorTest, TensorPostfixIncrement) {
+    Tensor<float> tensor({2, 3});
+    
+    tensor++;
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test prefix decrement operation
+TEST_F(TensorTest, TensorPrefixDecrement) {
+    Tensor<float> tensor({2, 3});
+    
+    --tensor;
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test postfix decrement operation
+TEST_F(TensorTest, TensorPostfixDecrement) {
+    Tensor<float> tensor({2, 3});
+    
+    tensor--;
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
+// Test subscript operator
+TEST_F(TensorTest, TensorSubscript) {
+    Tensor<float> tensor({3, 4});
+    
+    auto slice = tensor[0];
+    
+    // Should reduce rank by 1
+    auto shape = slice.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 4);
+}
+
+// Test uint64 tensor type
+TEST_F(TensorTest, CreateUInt64Tensor) {
+    Tensor<uint64_t> tensor({2, 2});
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 2);
+}
+
 // Main function
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

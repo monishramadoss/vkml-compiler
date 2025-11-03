@@ -48,8 +48,39 @@ See `.github/workflows/tests.yml` for the CI configuration.
 
 Current tests cover:
 - Tensor creation with various shapes (1D, 2D, 3D)
-- Different data types (float, double, int32_t)
-- Tensor arithmetic operations (addition, subtraction, multiplication)
+- Different data types (float, double, int32_t, uint32_t, uint64_t)
+- **Arithmetic operations:**
+  - Addition (+)
+  - Subtraction (-)
+  - Multiplication (*)
+  - Division (/ for both float and int)
+  - Modulo (%)
+- **Bitwise operations:**
+  - AND (&)
+  - OR (|)
+  - XOR (^)
+  - NOT (~)
+  - Left shift (<<)
+  - Right shift (>>)
+- **Logical operations:**
+  - Logical AND (&&)
+  - Logical OR (||)
+  - Logical NOT (!)
+- **Comparison operations:**
+  - Equal (==)
+  - Not equal (!=)
+  - Greater than (>)
+  - Greater than or equal (>=)
+  - Less than (<)
+  - Less than or equal (<=)
+- **Unary operations:**
+  - Unary plus/abs (+)
+  - Prefix increment (++)
+  - Postfix increment (++)
+  - Prefix decrement (--)
+  - Postfix decrement (--)
+- **Indexing:**
+  - Subscript operator ([])
 - Broadcasting operations
 - Symbolic ID generation
 

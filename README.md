@@ -37,7 +37,7 @@ cmake --build build/x64-debug-linux
 
 ## Testing
 
-The project includes comprehensive unit tests using Google Test framework.
+The project includes comprehensive unit tests (35+ test cases) using Google Test framework, covering all tensor operations including arithmetic, bitwise, logical, comparison operations, and more.
 
 ```bash
 # Build tests
