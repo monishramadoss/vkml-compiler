@@ -115,3 +115,8 @@ if(TOOLS)
 	add_subdirectory(tools)
 endif()
 
+# Enable testing
+include(CTest)
+if(BUILD_TESTING)
+	add_subdirectory(tests)
+endif()
