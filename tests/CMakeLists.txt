@@ -26,7 +26,7 @@ target_include_directories(tensor_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../inc
 )
 
-# Create test executables for operator-specific tests
+# Create test executables for operator-specific tests (using CTest)
 add_executable(arithmetic_ops_tests
   ArithmeticOps_tests.cpp
 )
@@ -34,7 +34,6 @@ add_executable(arithmetic_ops_tests
 target_link_libraries(arithmetic_ops_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(arithmetic_ops_tests PRIVATE
@@ -49,7 +48,6 @@ add_executable(bitwise_ops_tests
 target_link_libraries(bitwise_ops_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(bitwise_ops_tests PRIVATE
@@ -64,7 +62,6 @@ add_executable(comparison_ops_tests
 target_link_libraries(comparison_ops_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(comparison_ops_tests PRIVATE
@@ -79,7 +76,6 @@ add_executable(logical_ops_tests
 target_link_libraries(logical_ops_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(logical_ops_tests PRIVATE
@@ -94,7 +90,6 @@ add_executable(other_ops_tests
 target_link_libraries(other_ops_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(other_ops_tests PRIVATE
@@ -102,10 +97,12 @@ target_include_directories(other_ops_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# Register tests with CTest
 include(GoogleTest)
 gtest_discover_tests(tensor_tests)
-gtest_discover_tests(arithmetic_ops_tests)
-gtest_discover_tests(bitwise_ops_tests)
-gtest_discover_tests(comparison_ops_tests)
-gtest_discover_tests(logical_ops_tests)
-gtest_discover_tests(other_ops_tests)
+
+add_test(NAME ArithmeticOps COMMAND arithmetic_ops_tests)
+add_test(NAME BitwiseOps COMMAND bitwise_ops_tests)
+add_test(NAME ComparisonOps COMMAND comparison_ops_tests)
+add_test(NAME LogicalOps COMMAND logical_ops_tests)
+add_test(NAME OtherOps COMMAND other_ops_tests)

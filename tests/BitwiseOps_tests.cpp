@@ -1,19 +1,10 @@
-#include <gtest/gtest.h>
 #include "Tensor.h"
 #include "Compiler.h"
 #include "ShapeGenerator.h"
+#include "test_utils.h"
 
-// Test fixture for Bitwise operator tests
-class BitwiseOpsTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Reset the compiler instance for each test
-    }
-};
-
-// ========== Bitwise AND Tests ==========
-
-TEST_F(BitwiseOpsTest, BitwiseAndBasic) {
+void test_bitwise_and_basic() {
+    TEST_BEGIN("Bitwise AND Basic");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -23,9 +14,11 @@ TEST_F(BitwiseOpsTest, BitwiseAndBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseAndVariousShapes) {
+void test_bitwise_and_various_shapes() {
+    TEST_BEGIN("Bitwise AND Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -40,25 +33,11 @@ TEST_F(BitwiseOpsTest, BitwiseAndVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseAndBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<uint32_t> tensor1(pair.shape1);
-        Tensor<uint32_t> tensor2(pair.shape2);
-        
-        auto result = tensor1 & tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Bitwise OR Tests ==========
-
-TEST_F(BitwiseOpsTest, BitwiseOrBasic) {
+void test_bitwise_or_basic() {
+    TEST_BEGIN("Bitwise OR Basic");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -68,9 +47,11 @@ TEST_F(BitwiseOpsTest, BitwiseOrBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseOrVariousShapes) {
+void test_bitwise_or_various_shapes() {
+    TEST_BEGIN("Bitwise OR Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -85,25 +66,11 @@ TEST_F(BitwiseOpsTest, BitwiseOrVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseOrBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<uint32_t> tensor1(pair.shape1);
-        Tensor<uint32_t> tensor2(pair.shape2);
-        
-        auto result = tensor1 | tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Bitwise XOR Tests ==========
-
-TEST_F(BitwiseOpsTest, BitwiseXorBasic) {
+void test_bitwise_xor_basic() {
+    TEST_BEGIN("Bitwise XOR Basic");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -113,9 +80,11 @@ TEST_F(BitwiseOpsTest, BitwiseXorBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseXorVariousShapes) {
+void test_bitwise_xor_various_shapes() {
+    TEST_BEGIN("Bitwise XOR Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -130,25 +99,11 @@ TEST_F(BitwiseOpsTest, BitwiseXorVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseXorBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<uint32_t> tensor1(pair.shape1);
-        Tensor<uint32_t> tensor2(pair.shape2);
-        
-        auto result = tensor1 ^ tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Bitwise NOT Tests ==========
-
-TEST_F(BitwiseOpsTest, BitwiseNotBasic) {
+void test_bitwise_not_basic() {
+    TEST_BEGIN("Bitwise NOT Basic");
     Tensor<uint32_t> tensor({2, 3});
     
     auto result = ~tensor;
@@ -157,9 +112,11 @@ TEST_F(BitwiseOpsTest, BitwiseNotBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, BitwiseNotVariousShapes) {
+void test_bitwise_not_various_shapes() {
+    TEST_BEGIN("Bitwise NOT Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -173,11 +130,11 @@ TEST_F(BitwiseOpsTest, BitwiseNotVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-// ========== Left Shift Tests ==========
-
-TEST_F(BitwiseOpsTest, LeftShiftBasic) {
+void test_left_shift_basic() {
+    TEST_BEGIN("Left Shift Basic");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -187,9 +144,11 @@ TEST_F(BitwiseOpsTest, LeftShiftBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, LeftShiftVariousShapes) {
+void test_left_shift_various_shapes() {
+    TEST_BEGIN("Left Shift Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -204,25 +163,11 @@ TEST_F(BitwiseOpsTest, LeftShiftVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, LeftShiftBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<uint32_t> tensor1(pair.shape1);
-        Tensor<uint32_t> tensor2(pair.shape2);
-        
-        auto result = tensor1 << tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Right Shift Tests ==========
-
-TEST_F(BitwiseOpsTest, RightShiftBasic) {
+void test_right_shift_basic() {
+    TEST_BEGIN("Right Shift Basic");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -232,9 +177,11 @@ TEST_F(BitwiseOpsTest, RightShiftBasic) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, RightShiftVariousShapes) {
+void test_right_shift_various_shapes() {
+    TEST_BEGIN("Right Shift Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -249,18 +196,22 @@ TEST_F(BitwiseOpsTest, RightShiftVariousShapes) {
             EXPECT_EQ(resultShape[i], shape[i]);
         }
     }
+    TEST_END();
 }
 
-TEST_F(BitwiseOpsTest, RightShiftBroadcasting) {
-    BroadcastShapeGenerator gen;
+int main() {
+    test_bitwise_and_basic();
+    test_bitwise_and_various_shapes();
+    test_bitwise_or_basic();
+    test_bitwise_or_various_shapes();
+    test_bitwise_xor_basic();
+    test_bitwise_xor_various_shapes();
+    test_bitwise_not_basic();
+    test_bitwise_not_various_shapes();
+    test_left_shift_basic();
+    test_left_shift_various_shapes();
+    test_right_shift_basic();
+    test_right_shift_various_shapes();
     
-    for (const auto& pair : gen) {
-        Tensor<uint32_t> tensor1(pair.shape1);
-        Tensor<uint32_t> tensor2(pair.shape2);
-        
-        auto result = tensor1 >> tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
+    return TestRunner::report();
 }

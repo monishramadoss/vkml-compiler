@@ -6,12 +6,13 @@ This directory contains unit tests for the VKML compiler project using Google Te
 
 The tests are organized by operator category for better maintainability and focused testing:
 
-- **ArithmeticOps_tests.cpp**: Tests for arithmetic operators (+, -, *, /, %, ++, --, unary +)
-- **BitwiseOps_tests.cpp**: Tests for bitwise operators (&, |, ^, ~, <<, >>)
-- **ComparisonOps_tests.cpp**: Tests for comparison operators (==, !=, >, >=, <, <=)
-- **LogicalOps_tests.cpp**: Tests for logical operators (&&, ||, !)
-- **OtherOps_tests.cpp**: Tests for tensor creation, subscript operator, and broadcasting
-- **Tensor_tests.cpp**: Original comprehensive test suite (maintained for backward compatibility)
+- **ArithmeticOps_tests.cpp**: Tests for arithmetic operators (+, -, *, /, %, ++, --, unary +) - Uses CTest
+- **BitwiseOps_tests.cpp**: Tests for bitwise operators (&, |, ^, ~, <<, >>) - Uses CTest
+- **ComparisonOps_tests.cpp**: Tests for comparison operators (==, !=, >, >=, <, <=) - Uses CTest
+- **LogicalOps_tests.cpp**: Tests for logical operators (&&, ||, !) - Uses CTest
+- **OtherOps_tests.cpp**: Tests for tensor creation, subscript operator, and broadcasting - Uses CTest
+- **Tensor_tests.cpp**: Original comprehensive test suite (uses Google Test for backward compatibility)
+- **test_utils.h**: Simple test framework for CTest-based tests
 
 ## Shape Generator
 

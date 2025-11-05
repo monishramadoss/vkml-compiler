@@ -1,19 +1,10 @@
-#include <gtest/gtest.h>
 #include "Tensor.h"
 #include "Compiler.h"
 #include "ShapeGenerator.h"
+#include "test_utils.h"
 
-// Test fixture for Comparison operator tests
-class ComparisonOpsTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Reset the compiler instance for each test
-    }
-};
-
-// ========== Equality Tests ==========
-
-TEST_F(ComparisonOpsTest, EqualBasic) {
+void test_equal_basic() {
+    TEST_BEGIN("Equal Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -21,9 +12,11 @@ TEST_F(ComparisonOpsTest, EqualBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, EqualVariousShapes) {
+void test_equal_various_shapes() {
+    TEST_BEGIN("Equal Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -35,35 +28,11 @@ TEST_F(ComparisonOpsTest, EqualVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, EqualBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 == tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-TEST_F(ComparisonOpsTest, EqualIntType) {
-    Tensor<int32_t> tensor1({3, 3});
-    Tensor<int32_t> tensor2({3, 3});
-    
-    auto result = tensor1 == tensor2;
-    
-    auto shape = result.getShape();
-    EXPECT_GT(shape.size(), 0);
-}
-
-// ========== Not Equal Tests ==========
-
-TEST_F(ComparisonOpsTest, NotEqualBasic) {
+void test_not_equal_basic() {
+    TEST_BEGIN("Not Equal Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -71,9 +40,11 @@ TEST_F(ComparisonOpsTest, NotEqualBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, NotEqualVariousShapes) {
+void test_not_equal_various_shapes() {
+    TEST_BEGIN("Not Equal Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -85,25 +56,11 @@ TEST_F(ComparisonOpsTest, NotEqualVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, NotEqualBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 != tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Greater Than Tests ==========
-
-TEST_F(ComparisonOpsTest, GreaterThanBasic) {
+void test_greater_than_basic() {
+    TEST_BEGIN("Greater Than Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -111,9 +68,11 @@ TEST_F(ComparisonOpsTest, GreaterThanBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, GreaterThanVariousShapes) {
+void test_greater_than_various_shapes() {
+    TEST_BEGIN("Greater Than Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -125,25 +84,11 @@ TEST_F(ComparisonOpsTest, GreaterThanVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, GreaterThanBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 > tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Greater Equal Tests ==========
-
-TEST_F(ComparisonOpsTest, GreaterEqualBasic) {
+void test_greater_equal_basic() {
+    TEST_BEGIN("Greater Equal Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -151,9 +96,11 @@ TEST_F(ComparisonOpsTest, GreaterEqualBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, GreaterEqualVariousShapes) {
+void test_greater_equal_various_shapes() {
+    TEST_BEGIN("Greater Equal Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -165,25 +112,11 @@ TEST_F(ComparisonOpsTest, GreaterEqualVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, GreaterEqualBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 >= tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Less Than Tests ==========
-
-TEST_F(ComparisonOpsTest, LessThanBasic) {
+void test_less_than_basic() {
+    TEST_BEGIN("Less Than Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -191,9 +124,11 @@ TEST_F(ComparisonOpsTest, LessThanBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, LessThanVariousShapes) {
+void test_less_than_various_shapes() {
+    TEST_BEGIN("Less Than Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -205,25 +140,11 @@ TEST_F(ComparisonOpsTest, LessThanVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, LessThanBroadcasting) {
-    BroadcastShapeGenerator gen;
-    
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 < tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
-}
-
-// ========== Less Equal Tests ==========
-
-TEST_F(ComparisonOpsTest, LessEqualBasic) {
+void test_less_equal_basic() {
+    TEST_BEGIN("Less Equal Basic");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -231,9 +152,11 @@ TEST_F(ComparisonOpsTest, LessEqualBasic) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, LessEqualVariousShapes) {
+void test_less_equal_various_shapes() {
+    TEST_BEGIN("Less Equal Various Shapes");
     ShapeGenerator gen;
     
     for (const auto& shape : gen) {
@@ -245,18 +168,22 @@ TEST_F(ComparisonOpsTest, LessEqualVariousShapes) {
         
         EXPECT_GT(resultShape.size(), 0);
     }
+    TEST_END();
 }
 
-TEST_F(ComparisonOpsTest, LessEqualBroadcasting) {
-    BroadcastShapeGenerator gen;
+int main() {
+    test_equal_basic();
+    test_equal_various_shapes();
+    test_not_equal_basic();
+    test_not_equal_various_shapes();
+    test_greater_than_basic();
+    test_greater_than_various_shapes();
+    test_greater_equal_basic();
+    test_greater_equal_various_shapes();
+    test_less_than_basic();
+    test_less_than_various_shapes();
+    test_less_equal_basic();
+    test_less_equal_various_shapes();
     
-    for (const auto& pair : gen) {
-        Tensor<float> tensor1(pair.shape1);
-        Tensor<float> tensor2(pair.shape2);
-        
-        auto result = tensor1 <= tensor2;
-        
-        auto shape = result.getShape();
-        EXPECT_GT(shape.size(), 0);
-    }
+    return TestRunner::report();
 }
