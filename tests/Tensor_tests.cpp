@@ -604,6 +604,58 @@ TEST_F(TensorTest, Fill1D) {
     EXPECT_EQ(shape[0], 10);
 }
 
+// Test batched matrix multiplication
+TEST_F(TensorTest, BatchMatrixMultiplication) {
+    Tensor<float> matrixA({2, 3, 4});  // batch=2, 3x4 matrices
+    Tensor<float> matrixB({2, 4, 5});  // batch=2, 4x5 matrices
+    
+    auto result = matrixA.batch_matmul(matrixB);
+    
+    // Result should be [2, 3, 5]
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 3);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+    EXPECT_EQ(shape[2], 5);
+}
+
+// Test vector-matrix multiplication
+TEST_F(TensorTest, VectorMatrixMultiplication) {
+    Tensor<float> vector({4});
+    Tensor<float> matrix({4, 5});
+    
+    auto result = vector.vecmat(matrix);
+    
+    // Result should be 1D vector of size 5
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 5);
+}
+
+// Test copy operation
+TEST_F(TensorTest, CopyOperation) {
+    Tensor<float> original({3, 4});
+    
+    auto copied = original.copy();
+    
+    auto shape = copied.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 3);
+    EXPECT_EQ(shape[1], 4);
+}
+
+// Test map operation with abs
+TEST_F(TensorTest, MapOperationAbs) {
+    Tensor<float> tensor({2, 3});
+    
+    auto result = tensor.map<mlir::math::AbsFOp>();
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+}
+
 // Main function
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

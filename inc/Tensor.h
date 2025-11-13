@@ -1019,6 +1019,126 @@ public:
     return result;
   }
 
+  // Batched matrix multiplication: C = A @ B (batched)
+  // A: [B, M, K], B: [B, K, N] -> C: [B, M, N]
+  template <typename U>
+  auto batch_matmul(const Tensor<U> &other) const {
+    using ResultType = std::common_type_t<T, U>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto lhsValue = this->read();
+    auto rhsValue = other.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+
+    // Verify shapes: both must be 3D [B, M, K] and [B, K, N]
+    if (lhsType.getRank() != 3 || rhsType.getRank() != 3) {
+      throw std::runtime_error("batch_matmul requires 3D tensors");
+    }
+    if (lhsType.getShape()[0] != rhsType.getShape()[0]) {
+      throw std::runtime_error("batch_matmul: batch dimensions must match");
+    }
+    if (lhsType.getShape()[2] != rhsType.getShape()[1]) {
+      throw std::runtime_error("batch_matmul: incompatible inner dimensions");
+    }
+
+    int64_t B = lhsType.getShape()[0];
+    int64_t M = lhsType.getShape()[1];
+    int64_t N = rhsType.getShape()[2];
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    auto resultType = mlir::RankedTensorType::get({B, M, N}, elementType);
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, llvm::ArrayRef<int64_t>{B, M, N}, elementType);
+
+    // Create linalg.batch_matmul operation
+    auto batchMatmulOp = builder.create<mlir::linalg::BatchMatmulOp>(
+        loc, mlir::ValueRange{lhsValue, rhsValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<ResultType> result({B, M, N});
+    result.write(batchMatmulOp.getResult(0));
+    return result;
+  }
+
+  // Vector-matrix multiplication: y = x @ A
+  // x: [N], A: [N, M] -> y: [M]
+  template <typename U>
+  auto vecmat(const Tensor<U> &matrix) const {
+    using ResultType = std::common_type_t<T, U>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto lhsValue = this->read();
+    auto rhsValue = matrix.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+
+    // Verify shapes: lhs must be 1D, rhs must be 2D
+    if (lhsType.getRank() != 1 || rhsType.getRank() != 2) {
+      throw std::runtime_error("vecmat requires 1D vector and 2D matrix");
+    }
+    if (lhsType.getShape()[0] != rhsType.getShape()[0]) {
+      throw std::runtime_error("vecmat: incompatible shapes");
+    }
+
+    int64_t M = rhsType.getShape()[1];
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    auto resultType = mlir::RankedTensorType::get({M}, elementType);
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, llvm::ArrayRef<int64_t>{M}, elementType);
+
+    // Create linalg.vecmat operation
+    auto vecmatOp = builder.create<mlir::linalg::VecmatOp>(
+        loc, mlir::ValueRange{lhsValue, rhsValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<ResultType> result({M});
+    result.write(vecmatOp.getResult(0));
+    return result;
+  }
+
+  // Copy operation: creates a copy of the tensor
+  Tensor<T> copy() const {
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, inputType.getShape(), inputType.getElementType());
+
+    // Create linalg.copy operation
+    auto copyOp = builder.create<mlir::linalg::CopyOp>(
+        loc, inputValue, emptyTensor.getResult());
+
+    Tensor<T> result(std::vector<int64_t>(inputType.getShape().begin(), 
+                                          inputType.getShape().end()));
+    result.write(copyOp.getResult(0));
+    return result;
+  }
+
+  // Map operation: apply a unary function to each element
+  // This is similar to linalgUnaryOp but exposed as a method
+  template <typename UnaryOp>
+  Tensor<T> map() const {
+    return linalgUnaryOp<UnaryOp, T>(*this);
+  }
+
   // Transpose operation: transpose last two dimensions
   // For 2D: [M, N] -> [N, M]
   // For higher rank: [..., M, N] -> [..., N, M]
