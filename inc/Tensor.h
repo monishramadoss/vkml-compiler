@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <limits>
 #include <ostream>
 #include <string>
 #include <type_traits>
@@ -889,6 +890,358 @@ public:
 
   // Assignment operator
   Tensor<T> &operator=(const Tensor &rhs) = delete;
+
+  // ========== Linalg Named Operations ==========
+  
+  // Matrix multiplication: C = A @ B
+  // A: [M, K], B: [K, N] -> C: [M, N]
+  template <typename U>
+  auto matmul(const Tensor<U> &other) const {
+    using ResultType = std::common_type_t<T, U>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto lhsValue = this->read();
+    auto rhsValue = other.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+
+    // Verify shapes: lhs must be [M, K], rhs must be [K, N]
+    if (lhsType.getRank() != 2 || rhsType.getRank() != 2) {
+      throw std::runtime_error("matmul requires 2D tensors");
+    }
+    if (lhsType.getShape()[1] != rhsType.getShape()[0]) {
+      throw std::runtime_error("matmul: incompatible shapes");
+    }
+
+    int64_t M = lhsType.getShape()[0];
+    int64_t N = rhsType.getShape()[1];
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    auto resultType = mlir::RankedTensorType::get({M, N}, elementType);
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, llvm::ArrayRef<int64_t>{M, N}, elementType);
+
+    // Create linalg.matmul operation
+    auto matmulOp = builder.create<mlir::linalg::MatmulOp>(
+        loc, mlir::ValueRange{lhsValue, rhsValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<ResultType> result({M, N});
+    result.write(matmulOp.getResult(0));
+    return result;
+  }
+
+  // Dot product: scalar = dot(A, B)
+  // A: [N], B: [N] -> scalar: []
+  template <typename U>
+  auto dot(const Tensor<U> &other) const {
+    using ResultType = std::common_type_t<T, U>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto lhsValue = this->read();
+    auto rhsValue = other.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+
+    // Verify shapes: both must be 1D with same length
+    if (lhsType.getRank() != 1 || rhsType.getRank() != 1) {
+      throw std::runtime_error("dot requires 1D tensors");
+    }
+    if (lhsType.getShape()[0] != rhsType.getShape()[0]) {
+      throw std::runtime_error("dot: incompatible shapes");
+    }
+
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    auto resultType = mlir::RankedTensorType::get({}, elementType);
+
+    // Create empty scalar output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, llvm::ArrayRef<int64_t>{}, elementType);
+
+    // Create linalg.dot operation
+    auto dotOp = builder.create<mlir::linalg::DotOp>(
+        loc, mlir::ValueRange{lhsValue, rhsValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<ResultType> result({});
+    result.write(dotOp.getResult(0));
+    return result;
+  }
+
+  // Matrix-vector multiplication: y = A @ x
+  // A: [M, N], x: [N] -> y: [M]
+  template <typename U>
+  auto matvec(const Tensor<U> &vec) const {
+    using ResultType = std::common_type_t<T, U>;
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto lhsValue = this->read();
+    auto rhsValue = vec.read();
+    auto lhsType = mlir::cast<mlir::RankedTensorType>(lhsValue.getType());
+    auto rhsType = mlir::cast<mlir::RankedTensorType>(rhsValue.getType());
+
+    // Verify shapes: lhs must be 2D, rhs must be 1D
+    if (lhsType.getRank() != 2 || rhsType.getRank() != 1) {
+      throw std::runtime_error("matvec requires 2D matrix and 1D vector");
+    }
+    if (lhsType.getShape()[1] != rhsType.getShape()[0]) {
+      throw std::runtime_error("matvec: incompatible shapes");
+    }
+
+    int64_t M = lhsType.getShape()[0];
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(ResultType));
+    auto resultType = mlir::RankedTensorType::get({M}, elementType);
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, llvm::ArrayRef<int64_t>{M}, elementType);
+
+    // Create linalg.matvec operation
+    auto matvecOp = builder.create<mlir::linalg::MatvecOp>(
+        loc, mlir::ValueRange{lhsValue, rhsValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<ResultType> result({M});
+    result.write(matvecOp.getResult(0));
+    return result;
+  }
+
+  // Transpose operation: transpose last two dimensions
+  // For 2D: [M, N] -> [N, M]
+  // For higher rank: [..., M, N] -> [..., N, M]
+  Tensor<T> transpose() const {
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto rank = inputType.getRank();
+
+    if (rank < 2) {
+      throw std::runtime_error("transpose requires at least 2D tensor");
+    }
+
+    // Build transposed shape (swap last two dimensions)
+    llvm::SmallVector<int64_t> transposedShape(inputType.getShape().begin(), 
+                                                inputType.getShape().end());
+    std::swap(transposedShape[rank - 2], transposedShape[rank - 1]);
+
+    auto resultType = mlir::RankedTensorType::get(transposedShape, 
+                                                   inputType.getElementType());
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, transposedShape, inputType.getElementType());
+
+    // Build permutation for transpose: [0, 1, ..., n-1, n-2]
+    llvm::SmallVector<int64_t> permutation;
+    for (int64_t i = 0; i < rank - 2; ++i) {
+      permutation.push_back(i);
+    }
+    permutation.push_back(rank - 1);  // swap
+    permutation.push_back(rank - 2);  // swap
+
+    // Create linalg.transpose operation
+    auto transposeOp = builder.create<mlir::linalg::TransposeOp>(
+        loc, inputValue, emptyTensor.getResult(), permutation);
+
+    Tensor<T> result(std::vector<int64_t>(transposedShape.begin(), 
+                                          transposedShape.end()));
+    result.write(transposeOp.getResult(0));
+    return result;
+  }
+
+  // Fill tensor with scalar value
+  static Tensor<T> fill(const mlir::ArrayRef<int64_t> &shape, T value) {
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+    auto ctx = compiler->getContext();
+
+    auto elementType = tensor_detail::cToMLIRType(ctx, typeid(T));
+    auto tensorType = mlir::RankedTensorType::get(shape, elementType);
+
+    // Create scalar value
+    mlir::Value scalarValue;
+    if constexpr (std::is_floating_point_v<T>) {
+      scalarValue = builder.create<mlir::arith::ConstantOp>(
+          loc, elementType, builder.getFloatAttr(elementType, value)).getResult();
+    } else if constexpr (std::is_integral_v<T>) {
+      scalarValue = builder.create<mlir::arith::ConstantOp>(
+          loc, elementType, builder.getIntegerAttr(elementType, value)).getResult();
+    }
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, shape, elementType);
+
+    // Create linalg.fill operation
+    auto fillOp = builder.create<mlir::linalg::FillOp>(
+        loc, mlir::ValueRange{scalarValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    Tensor<T> result(shape);
+    result.write(fillOp.getResult(0));
+    return result;
+  }
+
+  // Reduce operation along specified dimensions
+  // For now, we'll implement reduction along the last dimension
+  template <typename ReduceOp>
+  Tensor<T> reduce() const {
+    auto compiler = vkml::Compiler::getInstance();
+    auto scope = compiler->inMainBeforeTerminator();
+    auto &builder = compiler->getBuilder();
+    auto loc = builder.getUnknownLoc();
+
+    auto inputValue = this->read();
+    auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
+    auto rank = inputType.getRank();
+
+    if (rank == 0) {
+      throw std::runtime_error("Cannot reduce a scalar tensor");
+    }
+
+    // Result shape: drop the last dimension
+    llvm::SmallVector<int64_t> resultShape(inputType.getShape().begin(), 
+                                           inputType.getShape().end() - 1);
+    
+    auto resultType = mlir::RankedTensorType::get(
+        resultShape.empty() ? llvm::ArrayRef<int64_t>{} : resultShape,
+        inputType.getElementType());
+
+    // Create empty output tensor
+    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
+        loc, resultShape.empty() ? llvm::ArrayRef<int64_t>{} : resultShape, 
+        inputType.getElementType());
+
+    // Initialize the output with identity value
+    mlir::Value initValue;
+    if constexpr (std::is_same_v<ReduceOp, mlir::arith::AddFOp> || 
+                  std::is_same_v<ReduceOp, mlir::arith::AddIOp>) {
+      // Sum: identity is 0
+      if constexpr (std::is_floating_point_v<T>) {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getFloatAttr(inputType.getElementType(), 0.0)).getResult();
+      } else {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getIntegerAttr(inputType.getElementType(), 0)).getResult();
+      }
+    } else if constexpr (std::is_same_v<ReduceOp, mlir::arith::MaxSIOp> ||
+                         std::is_same_v<ReduceOp, mlir::arith::MaxFOp>) {
+      // Max: identity is min value
+      if constexpr (std::is_floating_point_v<T>) {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getFloatAttr(inputType.getElementType(), 
+                                -std::numeric_limits<T>::infinity())).getResult();
+      } else {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getIntegerAttr(inputType.getElementType(), 
+                                  std::numeric_limits<T>::min())).getResult();
+      }
+    } else if constexpr (std::is_same_v<ReduceOp, mlir::arith::MinSIOp> ||
+                         std::is_same_v<ReduceOp, mlir::arith::MinFOp>) {
+      // Min: identity is max value
+      if constexpr (std::is_floating_point_v<T>) {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getFloatAttr(inputType.getElementType(), 
+                                std::numeric_limits<T>::infinity())).getResult();
+      } else {
+        initValue = builder.create<mlir::arith::ConstantOp>(
+            loc, inputType.getElementType(), 
+            builder.getIntegerAttr(inputType.getElementType(), 
+                                  std::numeric_limits<T>::max())).getResult();
+      }
+    }
+
+    // Fill the output tensor with identity value
+    auto filledTensor = builder.create<mlir::linalg::FillOp>(
+        loc, mlir::ValueRange{initValue}, 
+        mlir::ValueRange{emptyTensor.getResult()});
+
+    // Build affine maps for reduction
+    // Input: all dimensions, Output: all dimensions except last
+    llvm::SmallVector<mlir::AffineExpr> inputExprs;
+    for (int64_t i = 0; i < rank; ++i) {
+      inputExprs.push_back(mlir::getAffineDimExpr(i, builder.getContext()));
+    }
+    llvm::SmallVector<mlir::AffineExpr> outputExprs(inputExprs.begin(), 
+                                                     inputExprs.end() - 1);
+
+    llvm::SmallVector<mlir::AffineMap> indexingMaps;
+    indexingMaps.push_back(mlir::AffineMap::get(rank, 0, inputExprs, builder.getContext()));
+    indexingMaps.push_back(mlir::AffineMap::get(rank, 0, 
+        outputExprs.empty() ? llvm::ArrayRef<mlir::AffineExpr>{} : outputExprs, 
+        builder.getContext()));
+
+    // Iterator types: all parallel except last which is reduction
+    llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
+        rank - 1, mlir::utils::IteratorType::parallel);
+    iteratorTypes.push_back(mlir::utils::IteratorType::reduction);
+
+    // Create linalg.generic with reduction body
+    auto genericOp = builder.create<mlir::linalg::GenericOp>(
+        loc, resultType, inputValue, filledTensor.getResult(0),
+        indexingMaps, iteratorTypes,
+        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+          auto result = b.create<ReduceOp>(nestedLoc, args[0], args[1]);
+          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+        });
+
+    Tensor<T> result(std::vector<int64_t>(resultShape.begin(), resultShape.end()));
+    result.write(genericOp.getResult(0));
+    return result;
+  }
+
+  // Convenience methods for specific reductions
+  Tensor<T> sum() const {
+    if constexpr (std::is_floating_point_v<T>) {
+      return reduce<mlir::arith::AddFOp>();
+    } else {
+      return reduce<mlir::arith::AddIOp>();
+    }
+  }
+
+  Tensor<T> max() const {
+    if constexpr (std::is_floating_point_v<T>) {
+      return reduce<mlir::arith::MaximumFOp>();
+    } else if constexpr (std::is_signed_v<T>) {
+      return reduce<mlir::arith::MaxSIOp>();
+    } else {
+      return reduce<mlir::arith::MaxUIOp>();
+    }
+  }
+
+  Tensor<T> min() const {
+    if constexpr (std::is_floating_point_v<T>) {
+      return reduce<mlir::arith::MinimumFOp>();
+    } else if constexpr (std::is_signed_v<T>) {
+      return reduce<mlir::arith::MinSIOp>();
+    } else {
+      return reduce<mlir::arith::MinUIOp>();
+    }
+  }
 
 private:
 };
