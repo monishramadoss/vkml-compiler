@@ -1,6 +1,45 @@
 # VKML Compiler Tests
 
-This directory contains unit tests for the VKML compiler project using Google Test framework.
+This directory contains unit tests for the VKML compiler project using CTest framework.
+
+## Test Structure
+
+The tests are organized by operator category for better maintainability and focused testing:
+
+- **ArithmeticOps_tests.cpp**: Tests for arithmetic operators (+, -, *, /, %, ++, --, unary +) - Uses CTest
+- **BitwiseOps_tests.cpp**: Tests for bitwise operators (&, |, ^, ~, <<, >>) - Uses CTest
+- **ComparisonOps_tests.cpp**: Tests for comparison operators (==, !=, >, >=, <, <=) - Uses CTest
+- **LogicalOps_tests.cpp**: Tests for logical operators (&&, ||, !) - Uses CTest
+- **OtherOps_tests.cpp**: Tests for tensor creation, subscript operator, and broadcasting - Uses CTest
+- **Tensor_tests.cpp**: Original comprehensive test suite - Uses CTest
+- **test_utils.h**: Simple test framework for CTest-based tests
+
+## Shape Generator
+
+The `ShapeGenerator.h` utility provides automated generation of test shapes including:
+
+### ShapeGenerator
+Generates a comprehensive set of edge cases and unusual tensor shapes:
+- 1D shapes (scalars, small, large, prime numbers, powers of 2)
+- 2D shapes (squares, rectangles, very wide/tall, prime dimensions)
+- 3D shapes (cubes, common ML shapes, asymmetric)
+- 4D shapes (image batches, feature maps)
+- 5D+ shapes (stress testing)
+- Broadcastable shapes (dimensions with size 1)
+
+### BroadcastShapeGenerator
+Generates shape pairs specifically designed for testing broadcasting:
+- Same shape pairs
+- Scalar broadcasting
+- Row and column broadcasting
+- Different rank broadcasting
+- Complex multi-dimensional broadcasting
+
+### RandomShapeGenerator
+Generates random shapes with configurable parameters:
+- Configurable rank range
+- Configurable dimension size range
+- Useful for fuzz testing
 
 ## Building and Running Tests
 
@@ -15,25 +54,44 @@ This directory contains unit tests for the VKML compiler project using Google Te
 # Configure the project with tests enabled
 cmake --preset x64-debug-linux
 
-# Build the test executable
+# Build all test executables
+cmake --build build/x64-debug-linux --target arithmetic_ops_tests
+cmake --build build/x64-debug-linux --target bitwise_ops_tests
+cmake --build build/x64-debug-linux --target comparison_ops_tests
+cmake --build build/x64-debug-linux --target logical_ops_tests
+cmake --build build/x64-debug-linux --target other_ops_tests
 cmake --build build/x64-debug-linux --target tensor_tests
+
+# Or build all tests at once
+cmake --build build/x64-debug-linux
 
 # Run all tests
 cd build/x64-debug-linux
 ctest --output-on-failure --verbose
 
-# Or run the test executable directly
+# Or run a specific test executable directly
+./tests/arithmetic_ops_tests
+./tests/bitwise_ops_tests
+./tests/comparison_ops_tests
+./tests/logical_ops_tests
+./tests/other_ops_tests
 ./tests/tensor_tests
 ```
 
 ### Running Specific Tests
 
 ```bash
-# Run tests matching a pattern
-./tests/tensor_tests --gtest_filter=TensorTest.CreateTensorWithShape
+# Run individual test executables
+./tests/arithmetic_ops_tests
+./tests/bitwise_ops_tests
+./tests/comparison_ops_tests
+./tests/logical_ops_tests
+./tests/other_ops_tests
+./tests/tensor_tests
 
-# List all available tests
-./tests/tensor_tests --gtest_list_tests
+# Run specific tests via CTest
+ctest -R ArithmeticOps --verbose
+ctest -R TensorTests --verbose
 ```
 
 ## Continuous Integration
@@ -46,49 +104,61 @@ See `.github/workflows/tests.yml` for the CI configuration.
 
 ## Test Coverage
 
-Current tests cover:
-- Tensor creation with various shapes (1D, 2D, 3D)
+The tests are now organized into focused suites by operator category. Each suite includes:
+
+- **Basic tests**: Verify operators work with simple shapes
+- **VariousShapes tests**: Test operators with a wide range of edge-case shapes using ShapeGenerator
+- **Broadcasting tests**: Test operators with broadcastable shape pairs using BroadcastShapeGenerator
+- **Type-specific tests**: Verify operators work with different data types (float, int, uint, etc.)
+
+Current operator coverage:
+- Tensor creation with various shapes (1D, 2D, 3D, 4D, 5D+)
 - Different data types (float, double, int32_t, uint32_t, uint64_t)
-- **Arithmetic operations:**
+- **Arithmetic operations** (ArithmeticOps_tests.cpp):
   - Addition (+)
   - Subtraction (-)
   - Multiplication (*)
   - Division (/ for both float and int)
   - Modulo (%)
-- **Bitwise operations:**
+  - Unary plus/abs (+)
+  - Prefix/postfix increment (++)
+  - Prefix/postfix decrement (--)
+- **Bitwise operations** (BitwiseOps_tests.cpp):
   - AND (&)
   - OR (|)
   - XOR (^)
   - NOT (~)
   - Left shift (<<)
   - Right shift (>>)
-- **Logical operations:**
+- **Logical operations** (LogicalOps_tests.cpp):
   - Logical AND (&&)
   - Logical OR (||)
   - Logical NOT (!)
-- **Comparison operations:**
+- **Comparison operations** (ComparisonOps_tests.cpp):
   - Equal (==)
   - Not equal (!=)
   - Greater than (>)
   - Greater than or equal (>=)
   - Less than (<)
   - Less than or equal (<=)
-- **Unary operations:**
-  - Unary plus/abs (+)
-  - Prefix increment (++)
-  - Postfix increment (++)
-  - Prefix decrement (--)
-  - Postfix decrement (--)
-- **Indexing:**
+- **Other operations** (OtherOps_tests.cpp):
   - Subscript operator ([])
-- Broadcasting operations
-- Symbolic ID generation
+  - Broadcasting operations
+  - Symbolic ID generation
+  - Tensor creation with various shapes
 
 ## Adding New Tests
 
 To add new tests:
 
-1. Add test cases to `Tensor_tests.cpp` or create new test files
-2. If creating new test files, update `tests/CMakeLists.txt` to include them
-3. Follow Google Test conventions for test naming and structure
-4. Ensure tests are isolated and don't depend on execution order
+1. Choose the appropriate test file based on operator category:
+   - ArithmeticOps_tests.cpp for arithmetic operators
+   - BitwiseOps_tests.cpp for bitwise operators
+   - ComparisonOps_tests.cpp for comparison operators
+   - LogicalOps_tests.cpp for logical operators
+   - OtherOps_tests.cpp for other operations
+2. Add test cases following the existing pattern (Basic, VariousShapes, Broadcasting)
+3. Utilize ShapeGenerator and BroadcastShapeGenerator for comprehensive shape testing
+4. Follow the CTest pattern using TEST_BEGIN/TEST_END macros
+5. Ensure tests are isolated and don't depend on execution order
+6. Run the specific test suite to verify your changes
