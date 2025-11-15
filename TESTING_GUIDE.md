@@ -7,21 +7,18 @@ This guide explains the new test structure for the VKML Compiler project.
 The test suite has been refactored to:
 1. **Separate tests by operator category** for better organization and maintainability
 2. **Use a shape generator** to brute-force test operators with strange and abnormal shapes
-3. **Use CTest** as the testing framework (except for the original test file which retains Google Test)
+3. **Use CTest** as the testing framework for all tests
 
 ## Test Files
 
-### Operator-Specific Tests (CTest-based)
+### All Tests (CTest-based)
 
 - **ArithmeticOps_tests.cpp**: Addition, subtraction, multiplication, division, modulo, increment, decrement
 - **BitwiseOps_tests.cpp**: Bitwise AND, OR, XOR, NOT, left shift, right shift
 - **ComparisonOps_tests.cpp**: Equality, inequality, greater than, less than, etc.
 - **LogicalOps_tests.cpp**: Logical AND, OR, NOT
 - **OtherOps_tests.cpp**: Tensor creation, subscript operator, broadcasting
-
-### Legacy Test (Google Test)
-
-- **Tensor_tests.cpp**: Original comprehensive test suite (kept for backward compatibility)
+- **Tensor_tests.cpp**: Original comprehensive test suite (converted to CTest)
 
 ## Shape Generator
 

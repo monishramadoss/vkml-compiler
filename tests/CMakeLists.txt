@@ -1,17 +1,6 @@
-# Google Test setup
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.14.0
-)
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
 enable_testing()
 
-# Create test executable for original tests
+# Create test executable for original tests (now using CTest)
 add_executable(tensor_tests
   Tensor_tests.cpp
 )
@@ -19,11 +8,11 @@ add_executable(tensor_tests
 target_link_libraries(tensor_tests
   PRIVATE
     vkml-compiler
-    GTest::gtest_main
 )
 
 target_include_directories(tensor_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../inc
+  ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Create test executables for operator-specific tests (using CTest)
@@ -98,9 +87,7 @@ target_include_directories(other_ops_tests PRIVATE
 )
 
 # Register tests with CTest
-include(GoogleTest)
-gtest_discover_tests(tensor_tests)
-
+add_test(NAME TensorTests COMMAND tensor_tests)
 add_test(NAME ArithmeticOps COMMAND arithmetic_ops_tests)
 add_test(NAME BitwiseOps COMMAND bitwise_ops_tests)
 add_test(NAME ComparisonOps COMMAND comparison_ops_tests)

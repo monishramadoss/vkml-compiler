@@ -1,6 +1,6 @@
 # VKML Compiler Tests
 
-This directory contains unit tests for the VKML compiler project using Google Test framework.
+This directory contains unit tests for the VKML compiler project using CTest framework.
 
 ## Test Structure
 
@@ -11,7 +11,7 @@ The tests are organized by operator category for better maintainability and focu
 - **ComparisonOps_tests.cpp**: Tests for comparison operators (==, !=, >, >=, <, <=) - Uses CTest
 - **LogicalOps_tests.cpp**: Tests for logical operators (&&, ||, !) - Uses CTest
 - **OtherOps_tests.cpp**: Tests for tensor creation, subscript operator, and broadcasting - Uses CTest
-- **Tensor_tests.cpp**: Original comprehensive test suite (uses Google Test for backward compatibility)
+- **Tensor_tests.cpp**: Original comprehensive test suite - Uses CTest
 - **test_utils.h**: Simple test framework for CTest-based tests
 
 ## Shape Generator
@@ -81,17 +81,17 @@ ctest --output-on-failure --verbose
 ### Running Specific Tests
 
 ```bash
-# Run tests matching a pattern in a specific suite
-./tests/arithmetic_ops_tests --gtest_filter=ArithmeticOpsTest.AdditionVariousShapes
+# Run individual test executables
+./tests/arithmetic_ops_tests
+./tests/bitwise_ops_tests
+./tests/comparison_ops_tests
+./tests/logical_ops_tests
+./tests/other_ops_tests
+./tests/tensor_tests
 
-# List all available tests in a suite
-./tests/arithmetic_ops_tests --gtest_list_tests
-
-# Run tests with verbose output
-./tests/arithmetic_ops_tests --gtest_print_time=1
-
-# Original test suite is still available
-./tests/tensor_tests --gtest_filter=TensorTest.CreateTensorWithShape
+# Run specific tests via CTest
+ctest -R ArithmeticOps --verbose
+ctest -R TensorTests --verbose
 ```
 
 ## Continuous Integration
@@ -159,6 +159,6 @@ To add new tests:
    - OtherOps_tests.cpp for other operations
 2. Add test cases following the existing pattern (Basic, VariousShapes, Broadcasting)
 3. Utilize ShapeGenerator and BroadcastShapeGenerator for comprehensive shape testing
-4. Follow Google Test conventions for test naming and structure
+4. Follow the CTest pattern using TEST_BEGIN/TEST_END macros
 5. Ensure tests are isolated and don't depend on execution order
 6. Run the specific test suite to verify your changes
