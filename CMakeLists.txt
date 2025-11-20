@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0048 NEW)
 project(vkml-compiler VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 
 option(TOOLS "ENABLE TESTING" ON)
@@ -52,6 +52,10 @@ include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/tablegen)
 
+include(CTest)
+if (BUILD_TESTING)
+	message(STATUS "CTest enabled: registering tests")
+endif()
 add_subdirectory(lib)
 
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/inc/*.h")
@@ -115,8 +119,9 @@ if(TOOLS)
 	add_subdirectory(tools)
 endif()
 
-# Enable testing
-include(CTest)
-if(BUILD_TESTING)
-	add_subdirectory(tests)
+if (BUILD_TESTING)
+  add_executable(vkml-tensor-tests tests/Tensor_tests.cpp)
+  target_link_libraries(vkml-tensor-tests PRIVATE vkml-compiler)
+  target_include_directories(vkml-tensor-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+  add_test(NAME vkml-tensor-tests COMMAND vkml-tensor-tests)
 endif()

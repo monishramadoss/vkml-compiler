@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 enable_testing()
 
 # Create test executable for original tests (now using CTest)
@@ -93,3 +94,10 @@ add_test(NAME BitwiseOps COMMAND bitwise_ops_tests)
 add_test(NAME ComparisonOps COMMAND comparison_ops_tests)
 add_test(NAME LogicalOps COMMAND logical_ops_tests)
 add_test(NAME OtherOps COMMAND other_ops_tests)
+=======
+cmake_minimum_required(VERSION 3.16)
+# Simplified test CMakeLists: test executables (e.g., vkml-empty-count) are defined in the root CMakeLists.
+# We rely solely on CTest without GoogleTest. Register test targets here with add_test(NAME <name> COMMAND <target>)
+# only if they are defined in the root CMakeLists, guarded by BUILD_TESTING.
+
+>>>>>>> Stashed changes
