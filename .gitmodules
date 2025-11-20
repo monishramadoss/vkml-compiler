@@ -2,3 +2,7 @@
 	path = llvm
 	url = https://github.com/llvm/llvm-project.git
 	branch = release/21.x
+[submodule "spirv"]
+	path = spirv
+	url = https://github.com/KhronosGroup/SPIRV-Headers.git
+	branch = main
