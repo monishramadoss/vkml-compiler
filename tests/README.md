@@ -11,6 +11,7 @@ The tests are organized by operator category for better maintainability and focu
 - **ComparisonOps_tests.cpp**: Tests for comparison operators (==, !=, >, >=, <, <=) - Uses CTest
 - **LogicalOps_tests.cpp**: Tests for logical operators (&&, ||, !) - Uses CTest
 - **OtherOps_tests.cpp**: Tests for tensor creation, subscript operator, and broadcasting - Uses CTest
+- **SPIRVPipeline_tests.cpp**: Tests for SPIR-V pipeline and Vulkan integration - Uses CTest
 - **Tensor_tests.cpp**: Original comprehensive test suite - Uses CTest
 - **test_utils.h**: Simple test framework for CTest-based tests
 
@@ -60,6 +61,7 @@ cmake --build build/x64-debug-linux --target bitwise_ops_tests
 cmake --build build/x64-debug-linux --target comparison_ops_tests
 cmake --build build/x64-debug-linux --target logical_ops_tests
 cmake --build build/x64-debug-linux --target other_ops_tests
+cmake --build build/x64-debug-linux --target spirv_pipeline_tests
 cmake --build build/x64-debug-linux --target tensor_tests
 
 # Or build all tests at once
@@ -75,6 +77,7 @@ ctest --output-on-failure --verbose
 ./tests/comparison_ops_tests
 ./tests/logical_ops_tests
 ./tests/other_ops_tests
+./tests/spirv_pipeline_tests
 ./tests/tensor_tests
 ```
 
@@ -87,10 +90,15 @@ ctest --output-on-failure --verbose
 ./tests/comparison_ops_tests
 ./tests/logical_ops_tests
 ./tests/other_ops_tests
+./tests/spirv_pipeline_tests
+./tests/tensor_tests
+./tests/other_ops_tests
+./tests/spirv_pipeline_tests
 ./tests/tensor_tests
 
 # Run specific tests via CTest
 ctest -R ArithmeticOps --verbose
+ctest -R SPIRVPipeline --verbose
 ctest -R TensorTests --verbose
 ```
 
@@ -145,6 +153,16 @@ Current operator coverage:
   - Subscript operator ([])
   - Broadcasting operations
   - Symbolic ID generation
+  - Tensor creation with various shapes
+- **SPIR-V Pipeline** (SPIRVPipeline_tests.cpp):
+  - SPIR-V serialization
+  - VulkanPipeline creation and validation
+  - SPIR-V binary properties (magic number, size, etc.)
+  - Entry point configuration
+  - Descriptor set layout management
+  - Push constant range configuration
+  - Multiple operations in pipeline
+  - Integer and float tensor pipelines
   - Tensor creation with various shapes
 
 ## Adding New Tests
