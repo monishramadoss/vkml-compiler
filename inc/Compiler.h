@@ -5,6 +5,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "SPIRVTargetEnv.h"
 
 // Implementation details for Tensor utilities
 namespace tensor_detail {
@@ -186,9 +187,12 @@ private:
 
   std::unique_ptr<FunctionFactory> functionFactory_;
   std::unique_ptr<VariableFactory> variableFactory_;
+  
+  SPIRVTargetEnv spirvTargetEnv_;
 
   Compiler()
-      : context_(), builder_(&context_), pm_(&context_), mainFunc_(nullptr) {
+      : context_(), builder_(&context_), pm_(&context_), mainFunc_(nullptr), 
+        spirvTargetEnv_(SPIRVTargetEnv::getDefault()) {
     // Create a dialect registry and register bufferization interfaces
     mlir::DialectRegistry registry;
     mlir::arith::registerBufferizableOpInterfaceExternalModels(registry);
@@ -259,6 +263,33 @@ public:
                                       bool insertAtStart = true) {
     
     return functionFactory_->createFunctionWithBody("func_" + baseName, inputs, results, bodyFn, insertAtStart);
+  }
+
+  // SPIR-V target environment configuration
+  // Allows driver to configure hardware capabilities and target ABI
+  void setSPIRVTargetEnv(const SPIRVTargetEnv &env) {
+    spirvTargetEnv_ = env;
+  }
+  
+  SPIRVTargetEnv& getSPIRVTargetEnv() {
+    return spirvTargetEnv_;
+  }
+  
+  const SPIRVTargetEnv& getSPIRVTargetEnv() const {
+    return spirvTargetEnv_;
+  }
+  
+  // Helper methods for common target configurations
+  void setVulkan1_0Target() {
+    spirvTargetEnv_ = SPIRVTargetEnv::getVulkan1_0();
+  }
+  
+  void setVulkan1_2Target() {
+    spirvTargetEnv_ = SPIRVTargetEnv::getVulkan1_2();
+  }
+  
+  void setVulkan1_3Target() {
+    spirvTargetEnv_ = SPIRVTargetEnv::getVulkan1_3();
   }
 
   void runLinalgToGPU() {

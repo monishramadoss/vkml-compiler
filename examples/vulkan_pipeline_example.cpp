@@ -21,14 +21,25 @@ int main() {
     // Get the compiler instance
     auto compiler = vkml::Compiler::getInstance();
     
+    // Configure target environment for hardware capabilities
+    std::cout << "2. Configuring SPIR-V target environment...\n";
+    // Driver can fill in hardware capabilities here
+    auto targetEnv = vkml::SPIRVTargetEnv::getVulkan1_2();
+    targetEnv.capabilities.supportsFloat64 = true; // Example: enable FP64 if hardware supports it
+    targetEnv.limits.maxComputeWorkGroupSizeX = 256; // Example: set from device properties
+    compiler->setSPIRVTargetEnv(targetEnv);
+    std::cout << "   SPIR-V Version: " << std::hex << targetEnv.spirvVersion << std::dec << "\n";
+    std::cout << "   Vulkan Version: " << std::hex << targetEnv.vulkanVersion << std::dec << "\n";
+    std::cout << "   Max WorkGroup Size X: " << targetEnv.limits.maxComputeWorkGroupSizeX << "\n\n";
+    
     // Dump the initial MLIR module (linalg dialect)
-    std::cout << "2. Initial MLIR Module (Linalg dialect):\n";
+    std::cout << "3. Initial MLIR Module (Linalg dialect):\n";
     std::cout << "   ----------------------------------------\n";
     vkml::dump();
     std::cout << "\n";
 
     // Create a VulkanPipeline (this runs the full pipeline and serializes)
-    std::cout << "3. Running pipeline: Linalg -> GPU -> SPIR-V...\n";
+    std::cout << "4. Running pipeline: Linalg -> GPU -> SPIR-V...\n";
     auto vulkanPipeline = compiler->createVulkanPipeline();
     
     if (!vulkanPipeline->isValid()) {
@@ -38,10 +49,12 @@ int main() {
     std::cout << "   Pipeline completed successfully!\n\n";
 
     // Display SPIR-V information
-    std::cout << "4. SPIR-V Binary Information:\n";
+    std::cout << "5. SPIR-V Binary Information:\n";
     std::cout << "   Binary size: " << vulkanPipeline->getShaderModuleSize() 
               << " bytes (" << vulkanPipeline->getShaderModuleWordCount() << " words)\n";
     std::cout << "   Entry point: " << vulkanPipeline->getEntryPoint() << "\n";
+    std::cout << "   Target SPIR-V version: " << std::hex << vulkanPipeline->getTargetEnv().spirvVersion << std::dec << "\n";
+    std::cout << "   Target Vulkan version: " << std::hex << vulkanPipeline->getTargetEnv().vulkanVersion << std::dec << "\n";
     
     // Display first few words of SPIR-V binary (header)
     const auto& binary = vulkanPipeline->getSPIRVBinary();
@@ -55,7 +68,7 @@ int main() {
     std::cout << "\n";
 
     // Show how to use with Vulkan (pseudocode)
-    std::cout << "5. Vulkan Integration Usage:\n";
+    std::cout << "6. Vulkan Integration Usage:\n";
     std::cout << "   ----------------------------------------\n";
     std::cout << "   // Create Vulkan shader module:\n";
     std::cout << "   VkShaderModuleCreateInfo createInfo{};\n";
@@ -76,7 +89,7 @@ int main() {
     std::cout << "\n";
 
     // Demonstrate manual descriptor set configuration
-    std::cout << "6. Example: Manual Descriptor Set Configuration:\n";
+    std::cout << "7. Example: Manual Descriptor Set Configuration:\n";
     std::cout << "   ----------------------------------------\n";
     // In a real scenario, you might add descriptor bindings like this:
     vulkanPipeline->addDescriptorSetLayout(0, {

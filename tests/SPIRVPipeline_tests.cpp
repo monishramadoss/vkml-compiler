@@ -2,6 +2,7 @@
 #include "Tensor.h"
 #include "Compiler.h"
 #include "VulkanPipeline.h"
+#include "SPIRVTargetEnv.h"
 
 // Test basic SPIR-V serialization
 void test_SPIRVSerialization() {
@@ -204,6 +205,45 @@ void test_IntegerTensorPipeline() {
     TEST_END();
 }
 
+// Test SPIR-V target environment configuration
+void test_SPIRVTargetEnvConfiguration() {
+    TEST_BEGIN("SPIRVTargetEnvConfiguration");
+    
+    Tensor<float> a({2, 2});
+    Tensor<float> b({2, 2});
+    auto c = a + b;
+    
+    auto compiler = vkml::Compiler::getInstance();
+    
+    // Test setting Vulkan 1.2 target
+    compiler->setVulkan1_2Target();
+    auto& env = compiler->getSPIRVTargetEnv();
+    ASSERT_EQ(env.spirvVersion, 0x00010500); // SPIR-V 1.5
+    ASSERT_EQ(env.vulkanVersion, 0x00102000); // Vulkan 1.2
+    ASSERT_TRUE(env.capabilities.supportsFloat16);
+    ASSERT_TRUE(env.capabilities.supportsInt8);
+    
+    // Test custom configuration
+    auto customEnv = vkml::SPIRVTargetEnv::getDefault();
+    customEnv.capabilities.supportsFloat64 = true;
+    customEnv.limits.maxComputeWorkGroupSizeX = 256;
+    compiler->setSPIRVTargetEnv(customEnv);
+    
+    auto& newEnv = compiler->getSPIRVTargetEnv();
+    ASSERT_TRUE(newEnv.capabilities.supportsFloat64);
+    ASSERT_EQ(newEnv.limits.maxComputeWorkGroupSizeX, 256);
+    
+    // Create pipeline and verify target env is passed through
+    auto vulkanPipeline = compiler->createVulkanPipeline();
+    ASSERT_TRUE(vulkanPipeline->isValid());
+    
+    const auto& pipelineEnv = vulkanPipeline->getTargetEnv();
+    ASSERT_TRUE(pipelineEnv.capabilities.supportsFloat64);
+    ASSERT_EQ(pipelineEnv.limits.maxComputeWorkGroupSizeX, 256);
+    
+    TEST_END();
+}
+
 int main() {
     // Run all tests
     test_SPIRVSerialization();
@@ -214,6 +254,7 @@ int main() {
     test_VulkanPipelinePushConstants();
     test_MultipleOperationsPipeline();
     test_IntegerTensorPipeline();
+    test_SPIRVTargetEnvConfiguration();
     
     return TestRunner::report();
 }

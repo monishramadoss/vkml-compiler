@@ -6,6 +6,8 @@ This document describes the pipeline that converts linalg operations to SPIR-V b
 
 The VKML compiler provides a complete pipeline that transforms high-level tensor operations written in C++ into SPIR-V binary code that can be used with Vulkan compute shaders. This enables developers to write tensor computations at a high level while generating efficient GPU code.
 
+The pipeline supports configurable target environments, allowing drivers to specify hardware capabilities and generate optimized SPIR-V code. See [SPIRV_TARGET_ENV.md](SPIRV_TARGET_ENV.md) for details on target environment configuration.
+
 ## Pipeline Stages
 
 ### 1. Linalg Operations (Input)

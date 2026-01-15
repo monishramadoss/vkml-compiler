@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include "SPIRVTargetEnv.h"
 
 namespace vkml {
 
@@ -36,16 +37,24 @@ private:
   std::vector<DescriptorSetLayout> descriptorSetLayouts_;
   std::vector<PushConstantRange> pushConstantRanges_;
   std::string entryPoint_;
+  SPIRVTargetEnv targetEnv_;
   
   // Parse SPIR-V binary to extract descriptor set and push constant info
   void parseSPIRVReflection();
 
 public:
-  VulkanPipeline() : entryPoint_("main") {}
+  VulkanPipeline() : entryPoint_("main"), targetEnv_(SPIRVTargetEnv::getDefault()) {}
   
   // Initialize with SPIR-V binary
   explicit VulkanPipeline(const std::vector<uint32_t> &spirvBinary)
-      : spirvBinary_(spirvBinary), entryPoint_("main") {
+      : spirvBinary_(spirvBinary), entryPoint_("main"), 
+        targetEnv_(SPIRVTargetEnv::getDefault()) {
+    parseSPIRVReflection();
+  }
+  
+  // Initialize with SPIR-V binary and target environment
+  VulkanPipeline(const std::vector<uint32_t> &spirvBinary, const SPIRVTargetEnv &env)
+      : spirvBinary_(spirvBinary), entryPoint_("main"), targetEnv_(env) {
     parseSPIRVReflection();
   }
 
@@ -109,6 +118,16 @@ public:
   // Check if pipeline is valid
   bool isValid() const {
     return !spirvBinary_.empty() && spirvBinary_.size() >= 5; // Minimum SPIR-V header size
+  }
+  
+  // Get target environment information
+  const SPIRVTargetEnv& getTargetEnv() const {
+    return targetEnv_;
+  }
+  
+  // Set target environment information
+  void setTargetEnv(const SPIRVTargetEnv &env) {
+    targetEnv_ = env;
   }
 };
 

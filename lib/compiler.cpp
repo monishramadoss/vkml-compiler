@@ -10,8 +10,8 @@ std::shared_ptr<VulkanPipeline> Compiler::createVulkanPipeline() {
   // Serialize the SPIR-V binary
   auto spirvBinary = serializeSPIRV();
   
-  // Create and return the VulkanPipeline
-  return std::make_shared<VulkanPipeline>(spirvBinary);
+  // Create and return the VulkanPipeline with target environment
+  return std::make_shared<VulkanPipeline>(spirvBinary, spirvTargetEnv_);
 }
 
 } // namespace vkml
