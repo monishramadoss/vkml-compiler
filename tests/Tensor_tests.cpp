@@ -484,7 +484,276 @@ void test_CreateUInt64Tensor() {
     TEST_END();
 }
 
+// ========== Tests for Linalg Named Operations ==========
 
+// Test matrix multiplication
+void test_MatrixMultiplication() {
+    TEST_BEGIN("MatrixMultiplication");
+    Tensor<float> matrixA({2, 3});  // 2x3 matrix
+    Tensor<float> matrixB({3, 4});  // 3x4 matrix
+    
+    auto result = matrixA.matmul(matrixB);
+    
+    // Result should be 2x4
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 4);
+    TEST_END();
+}
+
+// Test matrix multiplication with square matrices
+void test_SquareMatrixMultiplication() {
+    TEST_BEGIN("SquareMatrixMultiplication");
+    Tensor<float> matrixA({3, 3});
+    Tensor<float> matrixB({3, 3});
+    
+    auto result = matrixA.matmul(matrixB);
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 3);
+    EXPECT_EQ(shape[1], 3);
+    TEST_END();
+}
+
+// Test dot product
+void test_DotProduct() {
+    TEST_BEGIN("DotProduct");
+    Tensor<float> vectorA({5});
+    Tensor<float> vectorB({5});
+    
+    auto result = vectorA.dot(vectorB);
+    
+    // Result should be scalar (rank 0)
+    auto shape = result.getShape();
+    EXPECT_EQ(shape.size(), 0);
+    TEST_END();
+}
+
+// Test matrix-vector multiplication
+void test_MatrixVectorMultiplication() {
+    TEST_BEGIN("MatrixVectorMultiplication");
+    Tensor<float> matrix({3, 4});
+    Tensor<float> vector({4});
+    
+    auto result = matrix.matvec(vector);
+    
+    // Result should be 1D vector of size 3
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 3);
+    TEST_END();
+}
+
+// Test transpose operation
+void test_Transpose2D() {
+    TEST_BEGIN("Transpose2D");
+    Tensor<float> matrix({3, 4});
+    
+    auto result = matrix.transpose();
+    
+    // Shape should be swapped: 3x4 -> 4x3
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 4);
+    EXPECT_EQ(shape[1], 3);
+    TEST_END();
+}
+
+// Test transpose with 3D tensor
+void test_Transpose3D() {
+    TEST_BEGIN("Transpose3D");
+    Tensor<float> tensor({2, 3, 4});
+    
+    auto result = tensor.transpose();
+    
+    // Last two dimensions should be swapped: 2x3x4 -> 2x4x3
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 3);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 4);
+    EXPECT_EQ(shape[2], 3);
+    TEST_END();
+}
+
+// Test fill operation with float
+void test_FillFloat() {
+    TEST_BEGIN("FillFloat");
+    auto tensor = Tensor<float>::fill({2, 3}, 3.14f);
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+    TEST_END();
+}
+
+// Test fill operation with integer
+void test_FillInt() {
+    TEST_BEGIN("FillInt");
+    auto tensor = Tensor<int32_t>::fill({3, 3}, 42);
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 3);
+    EXPECT_EQ(shape[1], 3);
+    TEST_END();
+}
+
+// Test sum reduction
+void test_SumReduction() {
+    TEST_BEGIN("SumReduction");
+    Tensor<float> tensor({3, 4});
+    
+    auto result = tensor.sum();
+    
+    // Reduces last dimension: 3x4 -> 3
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 3);
+    TEST_END();
+}
+
+// Test sum reduction to scalar
+void test_SumReductionToScalar() {
+    TEST_BEGIN("SumReductionToScalar");
+    Tensor<float> vector({5});
+    
+    auto result = vector.sum();
+    
+    // Reduces to scalar: 5 -> []
+    auto shape = result.getShape();
+    EXPECT_EQ(shape.size(), 0);
+    TEST_END();
+}
+
+// Test max reduction
+void test_MaxReduction() {
+    TEST_BEGIN("MaxReduction");
+    Tensor<float> tensor({2, 5});
+    
+    auto result = tensor.max();
+    
+    // Reduces last dimension: 2x5 -> 2
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 2);
+    TEST_END();
+}
+
+// Test min reduction
+void test_MinReduction() {
+    TEST_BEGIN("MinReduction");
+    Tensor<int32_t> tensor({4, 3});
+    
+    auto result = tensor.min();
+    
+    // Reduces last dimension: 4x3 -> 4
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 4);
+    TEST_END();
+}
+
+// Test integer matrix multiplication
+void test_IntMatrixMultiplication() {
+    TEST_BEGIN("IntMatrixMultiplication");
+    Tensor<int32_t> matrixA({2, 3});
+    Tensor<int32_t> matrixB({3, 2});
+    
+    auto result = matrixA.matmul(matrixB);
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 2);
+    TEST_END();
+}
+
+// Test integer dot product
+void test_IntDotProduct() {
+    TEST_BEGIN("IntDotProduct");
+    Tensor<int32_t> vectorA({10});
+    Tensor<int32_t> vectorB({10});
+    
+    auto result = vectorA.dot(vectorB);
+    
+    auto shape = result.getShape();
+    EXPECT_EQ(shape.size(), 0);
+    TEST_END();
+}
+
+// Test fill operation with 1D tensor
+void test_Fill1D() {
+    TEST_BEGIN("Fill1D");
+    auto tensor = Tensor<float>::fill({10}, 1.5f);
+    
+    auto shape = tensor.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 10);
+    TEST_END();
+}
+
+// Test batched matrix multiplication
+void test_BatchMatrixMultiplication() {
+    TEST_BEGIN("BatchMatrixMultiplication");
+    Tensor<float> matrixA({2, 3, 4});  // batch=2, 3x4 matrices
+    Tensor<float> matrixB({2, 4, 5});  // batch=2, 4x5 matrices
+    
+    auto result = matrixA.batch_matmul(matrixB);
+    
+    // Result should be [2, 3, 5]
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 3);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+    EXPECT_EQ(shape[2], 5);
+    TEST_END();
+}
+
+// Test vector-matrix multiplication
+void test_VectorMatrixMultiplication() {
+    TEST_BEGIN("VectorMatrixMultiplication");
+    Tensor<float> vector({4});
+    Tensor<float> matrix({4, 5});
+    
+    auto result = vector.vecmat(matrix);
+    
+    // Result should be 1D vector of size 5
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 1);
+    EXPECT_EQ(shape[0], 5);
+    TEST_END();
+}
+
+// Test copy operation
+void test_CopyOperation() {
+    TEST_BEGIN("CopyOperation");
+    Tensor<float> original({3, 4});
+    
+    auto copied = original.copy();
+    
+    auto shape = copied.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 3);
+    EXPECT_EQ(shape[1], 4);
+    TEST_END();
+}
+
+// Test map operation with abs
+void test_MapOperationAbs() {
+    TEST_BEGIN("MapOperationAbs");
+    Tensor<float> tensor({2, 3});
+    
+    auto result = tensor.map<mlir::math::AbsFOp>();
+    
+    auto shape = result.getShape();
+    ASSERT_EQ(shape.size(), 2);
+    EXPECT_EQ(shape[0], 2);
+    EXPECT_EQ(shape[1], 3);
+    TEST_END();
+}
 
 int main() {
     test_CreateTensorWithShape();
@@ -522,6 +791,27 @@ int main() {
     test_TensorPostfixDecrement();
     test_TensorSubscript();
     test_CreateUInt64Tensor();
+    
+    // Linalg named operations tests
+    test_MatrixMultiplication();
+    test_SquareMatrixMultiplication();
+    test_DotProduct();
+    test_MatrixVectorMultiplication();
+    test_Transpose2D();
+    test_Transpose3D();
+    test_FillFloat();
+    test_FillInt();
+    test_SumReduction();
+    test_SumReductionToScalar();
+    test_MaxReduction();
+    test_MinReduction();
+    test_IntMatrixMultiplication();
+    test_IntDotProduct();
+    test_Fill1D();
+    test_BatchMatrixMultiplication();
+    test_VectorMatrixMultiplication();
+    test_CopyOperation();
+    test_MapOperationAbs();
     
     return TestRunner::report();
 }
