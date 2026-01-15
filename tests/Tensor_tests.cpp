@@ -1,44 +1,42 @@
-#include <gtest/gtest.h>
+#include "test_utils.h"
 #include "Tensor.h"
 #include "Compiler.h"
 
-// Test fixture for Tensor tests
-class TensorTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        // Reset the compiler instance for each test
-        // Note: The Compiler uses a singleton pattern, so we reuse the same instance
-    }
-};
-
 // Test tensor creation with different shapes
-TEST_F(TensorTest, CreateTensorWithShape) {
+void test_CreateTensorWithShape() {
+    TEST_BEGIN("CreateTensorWithShape");
     Tensor<float> tensor({2, 3});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor creation with 1D shape
-TEST_F(TensorTest, Create1DTensor) {
+void test_Create1DTensor() {
+    TEST_BEGIN("Create1DTensor");
     Tensor<float> tensor({5});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 5);
+    TEST_END();
 }
 
 // Test tensor creation with different data types
-TEST_F(TensorTest, CreateIntTensor) {
+void test_CreateIntTensor() {
+    TEST_BEGIN("CreateIntTensor");
     Tensor<int32_t> tensor({3, 3});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 3);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor addition operation
-TEST_F(TensorTest, TensorAddition) {
+void test_TensorAddition() {
+    TEST_BEGIN("TensorAddition");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -50,10 +48,12 @@ TEST_F(TensorTest, TensorAddition) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor subtraction operation
-TEST_F(TensorTest, TensorSubtraction) {
+void test_TensorSubtraction() {
+    TEST_BEGIN("TensorSubtraction");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -63,10 +63,12 @@ TEST_F(TensorTest, TensorSubtraction) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor multiplication operation
-TEST_F(TensorTest, TensorMultiplication) {
+void test_TensorMultiplication() {
+    TEST_BEGIN("TensorMultiplication");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -76,10 +78,12 @@ TEST_F(TensorTest, TensorMultiplication) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test symbolic ID generation
-TEST_F(TensorTest, SymbolicIDGeneration) {
+void test_SymbolicIDGeneration() {
+    TEST_BEGIN("SymbolicIDGeneration");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -92,29 +96,35 @@ TEST_F(TensorTest, SymbolicIDGeneration) {
     // IDs should start with "tensor_"
     EXPECT_EQ(id1.substr(0, 7), "tensor_");
     EXPECT_EQ(id2.substr(0, 7), "tensor_");
+    TEST_END();
 }
 
 // Test 3D tensor creation
-TEST_F(TensorTest, Create3DTensor) {
+void test_Create3DTensor() {
+    TEST_BEGIN("Create3DTensor");
     Tensor<float> tensor({2, 3, 4});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 3);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
     EXPECT_EQ(shape[2], 4);
+    TEST_END();
 }
 
 // Test double precision tensor
-TEST_F(TensorTest, CreateDoubleTensor) {
+void test_CreateDoubleTensor() {
+    TEST_BEGIN("CreateDoubleTensor");
     Tensor<double> tensor({2, 2});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 2);
+    TEST_END();
 }
 
 // Test broadcasting-like operations (different shapes)
-TEST_F(TensorTest, BroadcastOperation) {
+void test_BroadcastOperation() {
+    TEST_BEGIN("BroadcastOperation");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({1, 3});
     
@@ -124,10 +134,12 @@ TEST_F(TensorTest, BroadcastOperation) {
     // Result should exist
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test tensor division operation (floating point)
-TEST_F(TensorTest, TensorDivisionFloat) {
+void test_TensorDivisionFloat() {
+    TEST_BEGIN("TensorDivisionFloat");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -137,10 +149,12 @@ TEST_F(TensorTest, TensorDivisionFloat) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor division operation (integer)
-TEST_F(TensorTest, TensorDivisionInt) {
+void test_TensorDivisionInt() {
+    TEST_BEGIN("TensorDivisionInt");
     Tensor<int32_t> tensor1({2, 3});
     Tensor<int32_t> tensor2({2, 3});
     
@@ -150,10 +164,12 @@ TEST_F(TensorTest, TensorDivisionInt) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test tensor modulo operation
-TEST_F(TensorTest, TensorModulo) {
+void test_TensorModulo() {
+    TEST_BEGIN("TensorModulo");
     Tensor<int32_t> tensor1({2, 3});
     Tensor<int32_t> tensor2({2, 3});
     
@@ -163,10 +179,12 @@ TEST_F(TensorTest, TensorModulo) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test bitwise AND operation
-TEST_F(TensorTest, TensorBitwiseAnd) {
+void test_TensorBitwiseAnd() {
+    TEST_BEGIN("TensorBitwiseAnd");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -176,10 +194,12 @@ TEST_F(TensorTest, TensorBitwiseAnd) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test bitwise OR operation
-TEST_F(TensorTest, TensorBitwiseOr) {
+void test_TensorBitwiseOr() {
+    TEST_BEGIN("TensorBitwiseOr");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -189,10 +209,12 @@ TEST_F(TensorTest, TensorBitwiseOr) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test bitwise XOR operation
-TEST_F(TensorTest, TensorBitwiseXor) {
+void test_TensorBitwiseXor() {
+    TEST_BEGIN("TensorBitwiseXor");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -202,10 +224,12 @@ TEST_F(TensorTest, TensorBitwiseXor) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test bitwise NOT operation
-TEST_F(TensorTest, TensorBitwiseNot) {
+void test_TensorBitwiseNot() {
+    TEST_BEGIN("TensorBitwiseNot");
     Tensor<uint32_t> tensor({2, 3});
     
     auto result = ~tensor;
@@ -214,10 +238,12 @@ TEST_F(TensorTest, TensorBitwiseNot) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test left shift operation
-TEST_F(TensorTest, TensorLeftShift) {
+void test_TensorLeftShift() {
+    TEST_BEGIN("TensorLeftShift");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -227,10 +253,12 @@ TEST_F(TensorTest, TensorLeftShift) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test right shift operation
-TEST_F(TensorTest, TensorRightShift) {
+void test_TensorRightShift() {
+    TEST_BEGIN("TensorRightShift");
     Tensor<uint32_t> tensor1({2, 3});
     Tensor<uint32_t> tensor2({2, 3});
     
@@ -240,10 +268,12 @@ TEST_F(TensorTest, TensorRightShift) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test logical AND operation
-TEST_F(TensorTest, TensorLogicalAnd) {
+void test_TensorLogicalAnd() {
+    TEST_BEGIN("TensorLogicalAnd");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -251,10 +281,12 @@ TEST_F(TensorTest, TensorLogicalAnd) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test logical OR operation
-TEST_F(TensorTest, TensorLogicalOr) {
+void test_TensorLogicalOr() {
+    TEST_BEGIN("TensorLogicalOr");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -262,10 +294,12 @@ TEST_F(TensorTest, TensorLogicalOr) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test logical NOT operation
-TEST_F(TensorTest, TensorLogicalNot) {
+void test_TensorLogicalNot() {
+    TEST_BEGIN("TensorLogicalNot");
     Tensor<float> tensor({2, 3});
     
     auto result = !tensor;
@@ -274,10 +308,12 @@ TEST_F(TensorTest, TensorLogicalNot) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test equality comparison
-TEST_F(TensorTest, TensorEqual) {
+void test_TensorEqual() {
+    TEST_BEGIN("TensorEqual");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -285,10 +321,12 @@ TEST_F(TensorTest, TensorEqual) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test inequality comparison
-TEST_F(TensorTest, TensorNotEqual) {
+void test_TensorNotEqual() {
+    TEST_BEGIN("TensorNotEqual");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -296,10 +334,12 @@ TEST_F(TensorTest, TensorNotEqual) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test greater than comparison
-TEST_F(TensorTest, TensorGreaterThan) {
+void test_TensorGreaterThan() {
+    TEST_BEGIN("TensorGreaterThan");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -307,10 +347,12 @@ TEST_F(TensorTest, TensorGreaterThan) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test greater than or equal comparison
-TEST_F(TensorTest, TensorGreaterEqual) {
+void test_TensorGreaterEqual() {
+    TEST_BEGIN("TensorGreaterEqual");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -318,10 +360,12 @@ TEST_F(TensorTest, TensorGreaterEqual) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test less than comparison
-TEST_F(TensorTest, TensorLessThan) {
+void test_TensorLessThan() {
+    TEST_BEGIN("TensorLessThan");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -329,10 +373,12 @@ TEST_F(TensorTest, TensorLessThan) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test less than or equal comparison
-TEST_F(TensorTest, TensorLessEqual) {
+void test_TensorLessEqual() {
+    TEST_BEGIN("TensorLessEqual");
     Tensor<float> tensor1({2, 3});
     Tensor<float> tensor2({2, 3});
     
@@ -340,10 +386,12 @@ TEST_F(TensorTest, TensorLessEqual) {
     
     auto shape = result.getShape();
     EXPECT_GT(shape.size(), 0);
+    TEST_END();
 }
 
 // Test unary plus (abs) operation
-TEST_F(TensorTest, TensorUnaryPlus) {
+void test_TensorUnaryPlus() {
+    TEST_BEGIN("TensorUnaryPlus");
     Tensor<float> tensor({2, 3});
     
     auto result = +tensor;
@@ -352,10 +400,12 @@ TEST_F(TensorTest, TensorUnaryPlus) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test prefix increment operation
-TEST_F(TensorTest, TensorPrefixIncrement) {
+void test_TensorPrefixIncrement() {
+    TEST_BEGIN("TensorPrefixIncrement");
     Tensor<float> tensor({2, 3});
     
     ++tensor;
@@ -364,10 +414,12 @@ TEST_F(TensorTest, TensorPrefixIncrement) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test postfix increment operation
-TEST_F(TensorTest, TensorPostfixIncrement) {
+void test_TensorPostfixIncrement() {
+    TEST_BEGIN("TensorPostfixIncrement");
     Tensor<float> tensor({2, 3});
     
     tensor++;
@@ -376,10 +428,12 @@ TEST_F(TensorTest, TensorPostfixIncrement) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test prefix decrement operation
-TEST_F(TensorTest, TensorPrefixDecrement) {
+void test_TensorPrefixDecrement() {
+    TEST_BEGIN("TensorPrefixDecrement");
     Tensor<float> tensor({2, 3});
     
     --tensor;
@@ -388,10 +442,12 @@ TEST_F(TensorTest, TensorPrefixDecrement) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test postfix decrement operation
-TEST_F(TensorTest, TensorPostfixDecrement) {
+void test_TensorPostfixDecrement() {
+    TEST_BEGIN("TensorPostfixDecrement");
     Tensor<float> tensor({2, 3});
     
     tensor--;
@@ -400,10 +456,12 @@ TEST_F(TensorTest, TensorPostfixDecrement) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test subscript operator
-TEST_F(TensorTest, TensorSubscript) {
+void test_TensorSubscript() {
+    TEST_BEGIN("TensorSubscript");
     Tensor<float> tensor({3, 4});
     
     auto slice = tensor[0];
@@ -412,21 +470,25 @@ TEST_F(TensorTest, TensorSubscript) {
     auto shape = slice.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 4);
+    TEST_END();
 }
 
 // Test uint64 tensor type
-TEST_F(TensorTest, CreateUInt64Tensor) {
+void test_CreateUInt64Tensor() {
+    TEST_BEGIN("CreateUInt64Tensor");
     Tensor<uint64_t> tensor({2, 2});
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 2);
+    TEST_END();
 }
 
 // ========== Tests for Linalg Named Operations ==========
 
 // Test matrix multiplication
-TEST_F(TensorTest, MatrixMultiplication) {
+void test_MatrixMultiplication() {
+    TEST_BEGIN("MatrixMultiplication");
     Tensor<float> matrixA({2, 3});  // 2x3 matrix
     Tensor<float> matrixB({3, 4});  // 3x4 matrix
     
@@ -437,10 +499,12 @@ TEST_F(TensorTest, MatrixMultiplication) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 4);
+    TEST_END();
 }
 
 // Test matrix multiplication with square matrices
-TEST_F(TensorTest, SquareMatrixMultiplication) {
+void test_SquareMatrixMultiplication() {
+    TEST_BEGIN("SquareMatrixMultiplication");
     Tensor<float> matrixA({3, 3});
     Tensor<float> matrixB({3, 3});
     
@@ -450,10 +514,12 @@ TEST_F(TensorTest, SquareMatrixMultiplication) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 3);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test dot product
-TEST_F(TensorTest, DotProduct) {
+void test_DotProduct() {
+    TEST_BEGIN("DotProduct");
     Tensor<float> vectorA({5});
     Tensor<float> vectorB({5});
     
@@ -462,10 +528,12 @@ TEST_F(TensorTest, DotProduct) {
     // Result should be scalar (rank 0)
     auto shape = result.getShape();
     EXPECT_EQ(shape.size(), 0);
+    TEST_END();
 }
 
 // Test matrix-vector multiplication
-TEST_F(TensorTest, MatrixVectorMultiplication) {
+void test_MatrixVectorMultiplication() {
+    TEST_BEGIN("MatrixVectorMultiplication");
     Tensor<float> matrix({3, 4});
     Tensor<float> vector({4});
     
@@ -475,10 +543,12 @@ TEST_F(TensorTest, MatrixVectorMultiplication) {
     auto shape = result.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 3);
+    TEST_END();
 }
 
 // Test transpose operation
-TEST_F(TensorTest, Transpose2D) {
+void test_Transpose2D() {
+    TEST_BEGIN("Transpose2D");
     Tensor<float> matrix({3, 4});
     
     auto result = matrix.transpose();
@@ -488,10 +558,12 @@ TEST_F(TensorTest, Transpose2D) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 4);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test transpose with 3D tensor
-TEST_F(TensorTest, Transpose3D) {
+void test_Transpose3D() {
+    TEST_BEGIN("Transpose3D");
     Tensor<float> tensor({2, 3, 4});
     
     auto result = tensor.transpose();
@@ -502,30 +574,36 @@ TEST_F(TensorTest, Transpose3D) {
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 4);
     EXPECT_EQ(shape[2], 3);
+    TEST_END();
 }
 
 // Test fill operation with float
-TEST_F(TensorTest, FillFloat) {
+void test_FillFloat() {
+    TEST_BEGIN("FillFloat");
     auto tensor = Tensor<float>::fill({2, 3}, 3.14f);
     
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test fill operation with integer
-TEST_F(TensorTest, FillInt) {
+void test_FillInt() {
+    TEST_BEGIN("FillInt");
     auto tensor = Tensor<int32_t>::fill({3, 3}, 42);
     
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 3);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
 // Test sum reduction
-TEST_F(TensorTest, SumReduction) {
+void test_SumReduction() {
+    TEST_BEGIN("SumReduction");
     Tensor<float> tensor({3, 4});
     
     auto result = tensor.sum();
@@ -534,10 +612,12 @@ TEST_F(TensorTest, SumReduction) {
     auto shape = result.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 3);
+    TEST_END();
 }
 
 // Test sum reduction to scalar
-TEST_F(TensorTest, SumReductionToScalar) {
+void test_SumReductionToScalar() {
+    TEST_BEGIN("SumReductionToScalar");
     Tensor<float> vector({5});
     
     auto result = vector.sum();
@@ -545,10 +625,12 @@ TEST_F(TensorTest, SumReductionToScalar) {
     // Reduces to scalar: 5 -> []
     auto shape = result.getShape();
     EXPECT_EQ(shape.size(), 0);
+    TEST_END();
 }
 
 // Test max reduction
-TEST_F(TensorTest, MaxReduction) {
+void test_MaxReduction() {
+    TEST_BEGIN("MaxReduction");
     Tensor<float> tensor({2, 5});
     
     auto result = tensor.max();
@@ -557,10 +639,12 @@ TEST_F(TensorTest, MaxReduction) {
     auto shape = result.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 2);
+    TEST_END();
 }
 
 // Test min reduction
-TEST_F(TensorTest, MinReduction) {
+void test_MinReduction() {
+    TEST_BEGIN("MinReduction");
     Tensor<int32_t> tensor({4, 3});
     
     auto result = tensor.min();
@@ -569,10 +653,12 @@ TEST_F(TensorTest, MinReduction) {
     auto shape = result.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 4);
+    TEST_END();
 }
 
 // Test integer matrix multiplication
-TEST_F(TensorTest, IntMatrixMultiplication) {
+void test_IntMatrixMultiplication() {
+    TEST_BEGIN("IntMatrixMultiplication");
     Tensor<int32_t> matrixA({2, 3});
     Tensor<int32_t> matrixB({3, 2});
     
@@ -582,10 +668,12 @@ TEST_F(TensorTest, IntMatrixMultiplication) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 2);
+    TEST_END();
 }
 
 // Test integer dot product
-TEST_F(TensorTest, IntDotProduct) {
+void test_IntDotProduct() {
+    TEST_BEGIN("IntDotProduct");
     Tensor<int32_t> vectorA({10});
     Tensor<int32_t> vectorB({10});
     
@@ -593,19 +681,23 @@ TEST_F(TensorTest, IntDotProduct) {
     
     auto shape = result.getShape();
     EXPECT_EQ(shape.size(), 0);
+    TEST_END();
 }
 
 // Test fill operation with 1D tensor
-TEST_F(TensorTest, Fill1D) {
+void test_Fill1D() {
+    TEST_BEGIN("Fill1D");
     auto tensor = Tensor<float>::fill({10}, 1.5f);
     
     auto shape = tensor.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 10);
+    TEST_END();
 }
 
 // Test batched matrix multiplication
-TEST_F(TensorTest, BatchMatrixMultiplication) {
+void test_BatchMatrixMultiplication() {
+    TEST_BEGIN("BatchMatrixMultiplication");
     Tensor<float> matrixA({2, 3, 4});  // batch=2, 3x4 matrices
     Tensor<float> matrixB({2, 4, 5});  // batch=2, 4x5 matrices
     
@@ -617,10 +709,12 @@ TEST_F(TensorTest, BatchMatrixMultiplication) {
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
     EXPECT_EQ(shape[2], 5);
+    TEST_END();
 }
 
 // Test vector-matrix multiplication
-TEST_F(TensorTest, VectorMatrixMultiplication) {
+void test_VectorMatrixMultiplication() {
+    TEST_BEGIN("VectorMatrixMultiplication");
     Tensor<float> vector({4});
     Tensor<float> matrix({4, 5});
     
@@ -630,10 +724,12 @@ TEST_F(TensorTest, VectorMatrixMultiplication) {
     auto shape = result.getShape();
     ASSERT_EQ(shape.size(), 1);
     EXPECT_EQ(shape[0], 5);
+    TEST_END();
 }
 
 // Test copy operation
-TEST_F(TensorTest, CopyOperation) {
+void test_CopyOperation() {
+    TEST_BEGIN("CopyOperation");
     Tensor<float> original({3, 4});
     
     auto copied = original.copy();
@@ -642,10 +738,12 @@ TEST_F(TensorTest, CopyOperation) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 3);
     EXPECT_EQ(shape[1], 4);
+    TEST_END();
 }
 
 // Test map operation with abs
-TEST_F(TensorTest, MapOperationAbs) {
+void test_MapOperationAbs() {
+    TEST_BEGIN("MapOperationAbs");
     Tensor<float> tensor({2, 3});
     
     auto result = tensor.map<mlir::math::AbsFOp>();
@@ -654,10 +752,66 @@ TEST_F(TensorTest, MapOperationAbs) {
     ASSERT_EQ(shape.size(), 2);
     EXPECT_EQ(shape[0], 2);
     EXPECT_EQ(shape[1], 3);
+    TEST_END();
 }
 
-// Main function
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+int main() {
+    test_CreateTensorWithShape();
+    test_Create1DTensor();
+    test_CreateIntTensor();
+    test_TensorAddition();
+    test_TensorSubtraction();
+    test_TensorMultiplication();
+    test_SymbolicIDGeneration();
+    test_Create3DTensor();
+    test_CreateDoubleTensor();
+    test_BroadcastOperation();
+    test_TensorDivisionFloat();
+    test_TensorDivisionInt();
+    test_TensorModulo();
+    test_TensorBitwiseAnd();
+    test_TensorBitwiseOr();
+    test_TensorBitwiseXor();
+    test_TensorBitwiseNot();
+    test_TensorLeftShift();
+    test_TensorRightShift();
+    test_TensorLogicalAnd();
+    test_TensorLogicalOr();
+    test_TensorLogicalNot();
+    test_TensorEqual();
+    test_TensorNotEqual();
+    test_TensorGreaterThan();
+    test_TensorGreaterEqual();
+    test_TensorLessThan();
+    test_TensorLessEqual();
+    test_TensorUnaryPlus();
+    test_TensorPrefixIncrement();
+    test_TensorPostfixIncrement();
+    test_TensorPrefixDecrement();
+    test_TensorPostfixDecrement();
+    test_TensorSubscript();
+    test_CreateUInt64Tensor();
+    
+    // Linalg named operations tests
+    test_MatrixMultiplication();
+    test_SquareMatrixMultiplication();
+    test_DotProduct();
+    test_MatrixVectorMultiplication();
+    test_Transpose2D();
+    test_Transpose3D();
+    test_FillFloat();
+    test_FillInt();
+    test_SumReduction();
+    test_SumReductionToScalar();
+    test_MaxReduction();
+    test_MinReduction();
+    test_IntMatrixMultiplication();
+    test_IntDotProduct();
+    test_Fill1D();
+    test_BatchMatrixMultiplication();
+    test_VectorMatrixMultiplication();
+    test_CopyOperation();
+    test_MapOperationAbs();
+    
+    return TestRunner::report();
 }

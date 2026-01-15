@@ -182,10 +182,41 @@
     "buildPresets": [
         {
             "name": "tools",
+            "hidden": true,
             "targets": [
                 "vkml-opt",
                 "vkml-translate"
             ]
+        },
+        {
+            "name": "tools-linux",
+            "inherits": ["tools"],
+            "configurePreset": "x64-debug-linux",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "tools-macos",
+            "inherits": ["tools"],
+            "configurePreset": "x64-debug-macos",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "tools-windows",
+            "inherits": ["tools"],
+            "configurePreset": "x64-debug-windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         },
         {
             "name": "dev",
