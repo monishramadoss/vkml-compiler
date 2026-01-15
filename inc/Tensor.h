@@ -1267,7 +1267,7 @@ public:
       }
     } else if constexpr (std::is_same_v<ReduceOp, mlir::arith::MaxSIOp> ||
                          std::is_same_v<ReduceOp, mlir::arith::MaxUIOp> ||
-                         std::is_same_v<ReduceOp, mlir::arith::MaxFOp> ||
+                         std::is_same_v<ReduceOp, mlir::arith::MaxNumFOp> ||
                          std::is_same_v<ReduceOp, mlir::arith::MaximumFOp>) {
       // Max: identity is min value
       if constexpr (std::is_floating_point_v<T>) {
@@ -1283,9 +1283,9 @@ public:
       }
     } else if constexpr (std::is_same_v<ReduceOp, mlir::arith::MinSIOp> ||
                          std::is_same_v<ReduceOp, mlir::arith::MinUIOp> ||
-                         std::is_same_v<ReduceOp, mlir::arith::MinFOp> ||
+                         std::is_same_v<ReduceOp, mlir::arith::MinNumFOp> ||
                          std::is_same_v<ReduceOp, mlir::arith::MinimumFOp>) {
-      // Min: identity is max value
+      // Min: identity is max value 
       if constexpr (std::is_floating_point_v<T>) {
         initValue = builder.create<mlir::arith::ConstantOp>(
             loc, inputType.getElementType(), 
