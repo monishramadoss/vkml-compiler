@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <memory>
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -59,6 +60,10 @@ static auto cToMLIRType = [](mlir::MLIRContext *ctx,
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
+#include "mlir/Dialect/SPIRV/IR/SPIRVDialect.h"
+#include "mlir/Dialect/SPIRV/IR/SPIRVOps.h"
+#include "mlir/Dialect/SPIRV/Transforms/Passes.h"
+#include "mlir/Target/SPIRV/Serialization.h"
 
 #include "mlir/Conversion/Passes.h"
 #include "mlir/Transforms/Passes.h"
@@ -166,6 +171,9 @@ public:
 
 namespace vkml {
 
+// Forward declaration
+class VulkanPipeline;
+
 class Compiler {
 private:
   mlir::MLIRContext context_;
@@ -204,6 +212,7 @@ private:
     context_.loadDialect<mlir::bufferization::BufferizationDialect>();
     context_.loadDialect<mlir::linalg::LinalgDialect>();
     context_.loadDialect<mlir::math::MathDialect>();
+    context_.loadDialect<mlir::spirv::SPIRVDialect>();
 
     module_ = mlir::ModuleOp::create(builder_.getUnknownLoc());
     builder_.setInsertionPointToStart(module_.getBody());
@@ -260,6 +269,40 @@ public:
       std::cerr << "Pipeline failed (partial lowering)\n";
     }
   }
+
+  // Run the complete pipeline from Linalg to SPIR-V
+  void runLinalgToSPIRV() {
+    // First run linalg to GPU
+    runLinalgToGPU();
+    
+    // Then convert GPU to SPIR-V
+    mlir::PassManager pm(&context_);
+    pm.addPass(mlir::createConvertGPUToSPIRVPass());
+    pm.addPass(mlir::createCanonicalizerPass());
+    
+    if (mlir::failed(pm.run(module_))) {
+      module_.dump();
+      std::cerr << "SPIR-V conversion failed\n";
+    }
+  }
+
+  // Serialize SPIR-V modules to binary format
+  std::vector<uint32_t> serializeSPIRV() {
+    std::vector<uint32_t> binary;
+    
+    // Walk through the module to find SPIR-V modules
+    module_.walk([&](mlir::spirv::ModuleOp spirvModule) {
+      llvm::SmallVector<uint32_t, 0> moduleBinary;
+      if (mlir::succeeded(mlir::spirv::serialize(spirvModule, moduleBinary))) {
+        binary.insert(binary.end(), moduleBinary.begin(), moduleBinary.end());
+      }
+    });
+    
+    return binary;
+  }
+
+  // Create a VulkanPipeline from the current module
+  std::shared_ptr<VulkanPipeline> createVulkanPipeline();
 };
 
 std::shared_ptr<Compiler> Compiler::instance_ = nullptr;

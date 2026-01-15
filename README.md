@@ -8,7 +8,9 @@ An MLIR-based compiler leveraging linalg and tensor dialects for tensor operatio
 
 - C++ Template-based Tensor API
 - Linalg dialect integration with MLIR
-- GPU transformation pipeline (Linalg → Bufferization → GPU)
+- Complete pipeline: Linalg → Bufferization → GPU → SPIR-V
+- SPIR-V binary generation for Vulkan integration
+- VulkanPipeline wrapper for shader modules and descriptor sets
 - Type-safe tensor operations with compile-time shape inference
 - Comprehensive linalg named operations:
   - Matrix operations: `matmul`, `dot`, `matvec`, `vecmat`, `batch_matmul`
@@ -57,7 +59,13 @@ For more details, see [tests/README.md](tests/README.md).
 
 ## API Documentation
 
-For detailed documentation on linalg named operations, see [LINALG_OPS.md](LINALG_OPS.md).
+- [LINALG_OPS.md](LINALG_OPS.md) - Linalg named operations
+- [SPIRV_PIPELINE.md](SPIRV_PIPELINE.md) - Linalg to SPIR-V pipeline for Vulkan
+
+## Examples
+
+See the [examples/](examples/) directory for usage examples, including:
+- `vulkan_pipeline_example.cpp` - Complete pipeline from linalg to SPIR-V for Vulkan
 
 ## Continuous Integration
 
@@ -67,17 +75,21 @@ Unit tests are automatically run on GitHub Actions for all pull requests and pus
 
 ```
 .
-├── inc/              # Header files
-│   ├── Compiler.h    # Main compiler interface
-│   ├── Tensor.h      # Tensor template class
+├── inc/                  # Header files
+│   ├── Compiler.h        # Main compiler interface
+│   ├── Tensor.h          # Tensor template class
+│   ├── VulkanPipeline.h  # Vulkan integration wrapper
 │   └── ScopedInserter.h
-├── lib/              # Implementation files
+├── lib/                  # Implementation files
 │   └── compiler.cpp
-├── tests/            # Unit tests
+├── examples/             # Usage examples
+│   └── vulkan_pipeline_example.cpp
+├── tests/                # Unit tests
 │   └── Tensor_tests.cpp
-├── tools/            # MLIR tools
-├── LINALG_OPS.md     # Linalg operations documentation
-└── llvm/             # LLVM/MLIR submodule
+├── tools/                # MLIR tools
+├── LINALG_OPS.md         # Linalg operations documentation
+├── SPIRV_PIPELINE.md     # SPIR-V pipeline documentation
+└── llvm/                 # LLVM/MLIR submodule
 ```
 
 ## License
