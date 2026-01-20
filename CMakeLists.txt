@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0048 NEW)
 project(vkml-compiler VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -51,8 +51,6 @@ include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/tablegen)
-
-add_subdirectory(lib)
 
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/inc/*.h")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HEADERS})
@@ -103,9 +101,7 @@ target_include_directories(vkml-compiler
 )
 
 target_include_directories(vkml-compiler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
-
 set_property(GLOBAL PROPERTY VKML_COMPILER_HEADERS ${MLIR_INCLUDE_DIRS} ${LLVM_INCLUDE_DIRS})
-
 
 add_executable(vkml-test-app main.cpp)
 target_link_libraries(vkml-test-app PRIVATE vkml-compiler)

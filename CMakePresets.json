@@ -1,261 +1,323 @@
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "ccache",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
-                "CMAKE_C_COMPILER_LAUNCHER": "ccache"
-            }
-        },
-        {
-            "name": "mold",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
-                "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
-            }
-        },
-        {
-            "name": "clang-tidy",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_CXX_CLANG_TIDY": "clang-tidy"
-            }
-        },
-        {
-            "name": "clangd",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-            }
-        },
-        {
-            "name": "msvc",
-            "hidden": true,
-            "cacheVariables": {
-                "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_C_STANDARD": "11"
-            },
-            "generator": "Visual Studio 17 2022"
-        },
-        {
-            "name": "dirs",
-            "hidden": true,
-            "installDir": "${sourceDir}/install/${presetName}",
-            "binaryDir": "${sourceDir}/build/${presetName}"
-        },
-        {
-            "name": "linux-base",
-            "hidden": true,
-            "inherits": [
-                "dirs",
-                "mold",
-                "ccache"
-            ],
-            "generator": "Ninja",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            }
-        },
-        {
-            "name": "macos-base",
-            "hidden": true,
-            "inherits": [
-                "dirs"
-            ],
-            "generator": "Ninja",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
-            }
-        },
-        {
-            "name": "windows-base",
-            "hidden": true,
-            "inherits": [
-                "dirs",
-                "msvc",
-                "ccache"
-            ],
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "cl.exe",
-                "CMAKE_CXX_COMPILER": "cl.exe"
-            },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            }
-        },
-        {
-            "name": "x64-debug-linux",
-            "displayName": "Debug",
-            "inherits": [
-                "linux-base",
-                "clangd"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x64-release-linux",
-            "displayName": "Release",
-            "inherits": [
-                "linux-base"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "x64-debug-macos",
-            "displayName": "Debug",
-            "inherits": [
-                "macos-base"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x64-release-macos",
-            "displayName": "Release",
-            "inherits": [
-                "macos-base"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "x64-debug-windows",
-            "displayName": "Debug",
-            "inherits": [
-                "windows-base",
-                "clangd"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "x64-release-windows",
-            "displayName": "Release",
-            "inherits": [
-                "windows-base"
-            ],
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        }
-    ],
-    "buildPresets": [
-        {
-            "name": "tools",
-            "hidden": true,
-            "targets": [
-                "vkml-opt",
-                "vkml-translate"
-            ]
-        },
-        {
-            "name": "tools-linux",
-            "inherits": ["tools"],
-            "configurePreset": "x64-debug-linux",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            }
-        },
-        {
-            "name": "tools-macos",
-            "inherits": ["tools"],
-            "configurePreset": "x64-debug-macos",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
-            }
-        },
-        {
-            "name": "tools-windows",
-            "inherits": ["tools"],
-            "configurePreset": "x64-debug-windows",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            }
-        },
-        {
-            "name": "dev",
-            "hidden": true,
-            "targets": [
-                "vkml-test-app",
-                "vkml-lib"
-            ]
-        },
-        {
-            "name": "dev-win",
-            "inherits": ["dev"],
-            "configurePreset": "x64-debug-windows",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            }
-        },
-        {
-            "name": "dev-linux",
-            "inherits": ["dev"],
-            "configurePreset": "x64-debug-linux",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            }
-        }
-        
-        
-    ],
-    "testPresets": [
-        {
-            "name": "cTest",
-            "description": "",
-            "displayName": "",
-            "configurePreset": "x64-debug-linux",
-            "execution": {}
-        }
-    ]
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "ccache",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+        "CMAKE_C_COMPILER_LAUNCHER": "ccache"
+      }
+    },
+    {
+      "name": "mold",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=mold",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=mold"
+      }
+    },
+    {
+      "name": "clang-tidy",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy"
+      }
+    },
+    {
+      "name": "clangd",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "msvc",
+      "hidden": true,      
+      "generator": "Visual Studio 17 2022"
+    },
+    {
+      "name": "dirs",
+      "hidden": true,
+      "installDir": "${sourceDir}/install/${presetName}",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": [
+        "dirs",
+        "mold",
+        "ccache"
+      ],
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "macos-base",
+      "hidden": true,
+      "inherits": [
+        "dirs"
+      ],
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": [
+        "dirs",
+        "msvc",
+        "ccache"
+      ],
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-fast-base",
+      "hidden": true,
+      "inherits": [
+        "dirs",
+        "clangd",
+        "mold",
+        "ccache"
+      ],
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-debug-linux",
+      "displayName": "Debug",
+      "inherits": [
+        "linux-base",
+        "clangd"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release-linux",
+      "displayName": "Release",
+      "inherits": [
+        "linux-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-debug-macos",
+      "displayName": "Debug",
+      "inherits": [
+        "macos-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release-macos",
+      "displayName": "Release",
+      "inherits": [
+        "macos-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-debug-windows",
+      "displayName": "Debug",
+      "inherits": [
+        "windows-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release-windows",
+      "displayName": "Release",
+      "inherits": [
+        "windows-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-fast-debug-windows",
+      "displayName": "Fast_Debug",
+      "inherits": [
+        "windows-fast-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-fast-release-windows",
+      "displayName": "Fast_Release",
+      "inherits": [
+        "windows-fast-base"
+      ],
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "tools",
+      "hidden": true,
+      "targets": [
+        "vkml-opt",
+        "vkml-translate"
+      ]
+    },
+    {
+      "name": "tools-linux",
+      "inherits": [ "tools" ],
+      "configurePreset": "x64-debug-linux",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "tools-macos",
+      "inherits": [ "tools" ],
+      "configurePreset": "x64-debug-macos",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "tools-windows",
+      "inherits": [ "tools" ],
+      "configurePreset": "x64-debug-windows",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "dev",
+      "hidden": true,
+      "targets": [
+        "vkml-test-app"
+      ]
+    },
+    {
+      "name": "dev-win",
+      "inherits": [ "dev" ],
+      "configurePreset": "x64-debug-windows",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "dev-win-fast",
+      "targets": [
+        "vkml-test-app"
+      ],
+      "configurePreset": "x64-fast-debug-windows",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "dev-linux",
+      "inherits": [ "dev" ],
+      "configurePreset": "x64-debug-linux",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "cTest",
+      "description": "",
+      "displayName": "",
+      "configurePreset": "x64-debug-linux",
+      "execution": {}
+    },
+    {
+      "name": "cTest-win",
+      "description": "",
+      "displayName": "",
+      "configurePreset": "x64-debug-windows",
+      "execution": {}
+    },
+    {
+      "name": "cTest-win-fast",
+      "description": "",
+      "displayName": "",
+      "configurePreset": "x64-fast-debug-windows",
+      "execution": {}
+    }
+  ]
 }
