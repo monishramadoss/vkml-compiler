@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <fstream>
 #include "SPIRVTargetEnv.h"
 
 namespace vkml {
@@ -128,6 +129,24 @@ public:
   // Set target environment information
   void setTargetEnv(const SPIRVTargetEnv &env) {
     targetEnv_ = env;
+  }
+  
+  // Save SPIR-V binary to file for validation
+  bool saveSPIRVToFile(const std::string &filename) const {
+    if (!isValid()) {
+      return false;
+    }
+    
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) {
+      return false;
+    }
+    
+    file.write(reinterpret_cast<const char*>(spirvBinary_.data()), 
+               spirvBinary_.size() * sizeof(uint32_t));
+    file.close();
+    
+    return file.good();
   }
 };
 

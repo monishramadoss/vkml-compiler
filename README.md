@@ -61,11 +61,19 @@ For more details, see [tests/README.md](tests/README.md).
 
 - [LINALG_OPS.md](LINALG_OPS.md) - Linalg named operations
 - [SPIRV_PIPELINE.md](SPIRV_PIPELINE.md) - Linalg to SPIR-V pipeline for Vulkan
+- [SPIRV_TARGET_ENV.md](SPIRV_TARGET_ENV.md) - SPIR-V target environment configuration
 
 ## Examples
 
 See the [examples/](examples/) directory for usage examples, including:
 - `vulkan_pipeline_example.cpp` - Complete pipeline from linalg to SPIR-V for Vulkan
+- `spirv_validation_example.cpp` - SPIR-V validation using spirv-val
+
+## Scripts
+
+See the [scripts/](scripts/) directory for utility scripts:
+- `validate_spirv.py` - Python script to validate SPIR-V binaries with spirv-val
+- `validate_spirv.sh` - Bash script to validate SPIR-V binaries
 
 ## Continuous Integration
 
@@ -79,16 +87,22 @@ Unit tests are automatically run on GitHub Actions for all pull requests and pus
 │   ├── Compiler.h        # Main compiler interface
 │   ├── Tensor.h          # Tensor template class
 │   ├── VulkanPipeline.h  # Vulkan integration wrapper
+│   ├── SPIRVTargetEnv.h  # SPIR-V target environment
 │   └── ScopedInserter.h
 ├── lib/                  # Implementation files
 │   └── compiler.cpp
 ├── examples/             # Usage examples
-│   └── vulkan_pipeline_example.cpp
+│   ├── vulkan_pipeline_example.cpp
+│   └── spirv_validation_example.cpp
+├── scripts/              # Utility scripts
+│   ├── validate_spirv.py
+│   └── validate_spirv.sh
 ├── tests/                # Unit tests
 │   └── Tensor_tests.cpp
 ├── tools/                # MLIR tools
 ├── LINALG_OPS.md         # Linalg operations documentation
 ├── SPIRV_PIPELINE.md     # SPIR-V pipeline documentation
+├── SPIRV_TARGET_ENV.md   # Target environment documentation
 └── llvm/                 # LLVM/MLIR submodule
 ```
 
