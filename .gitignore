@@ -48,4 +48,4 @@ x64*
 gha-creds-*.json
 GEMINI.md
 .kilocodemodes
-compile_commands.json_codeql_detected_source_root
+compile_commands.json

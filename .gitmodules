@@ -1,4 +1,4 @@
 [submodule "llvm"]
 	path = llvm
 	url = https://github.com/VulkanML/llvm.git
-	branch = release/22.x
+	branch = c__23
