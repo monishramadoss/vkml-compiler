@@ -5,16 +5,36 @@
 
 #include <fstream>
 #include <cstdio>
+#include <unistd.h>
 
 // Helper function to check if spirv-val is available
 bool isSPIRVValAvailable() {
-    FILE* pipe = popen("which spirv-val 2>/dev/null", "r");
-    if (!pipe) return false;
+    // Check if spirv-val exists in PATH using access() for safety
+    const char* pathEnv = std::getenv("PATH");
+    if (!pathEnv) return false;
     
-    char buffer[256];
-    bool found = (fgets(buffer, sizeof(buffer), pipe) != nullptr);
-    pclose(pipe);
-    return found;
+    std::string pathStr(pathEnv);
+    size_t pos = 0;
+    std::string delimiter = ":";
+    
+    while ((pos = pathStr.find(delimiter)) != std::string::npos) {
+        std::string dir = pathStr.substr(0, pos);
+        std::string fullPath = dir + "/spirv-val";
+        if (access(fullPath.c_str(), X_OK) == 0) {
+            return true;
+        }
+        pathStr.erase(0, pos + delimiter.length());
+    }
+    
+    // Check last directory
+    if (!pathStr.empty()) {
+        std::string fullPath = pathStr + "/spirv-val";
+        if (access(fullPath.c_str(), X_OK) == 0) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 // Helper function to compile and validate SPIR-V

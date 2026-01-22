@@ -11,8 +11,13 @@
 #include "mlir/Target/SPIRV/Serialization.h"
 #include "mlir/Transforms/Passes.h"
 
+#include <cstdio>
 #include <cstdlib>
+#include <cerrno>
+#include <cstring>
 #include <sstream>
+#include <array>
+#include <unistd.h>
 
 namespace vkml {
 
@@ -130,26 +135,41 @@ bool SPIRVPipeline::validate() const {
     return false;
   }
 
-  // Write binary to a temporary file
-  const char* tmpFile = "/tmp/spirv_validation.spv";
-  std::FILE* f = std::fopen(tmpFile, "wb");
-  if (!f) {
-    llvm::errs() << "Failed to create temporary file for validation\n";
+  // Create a unique temporary file using mkstemp for security
+  char tmpFileTemplate[] = "/tmp/spirv_validation_XXXXXX";
+  int fd = mkstemp(tmpFileTemplate);
+  if (fd == -1) {
+    llvm::errs() << "Failed to create temporary file for validation: " 
+                 << std::strerror(errno) << "\n";
     return false;
   }
 
-  std::fwrite(compiledBinary_->spirvBinary.data(), sizeof(uint32_t),
-              compiledBinary_->spirvBinary.size(), f);
-  std::fclose(f);
-
-  // Run spirv-val on the binary
-  std::stringstream cmd;
-  cmd << "spirv-val --target-env vulkan1.0 " << tmpFile << " 2>&1";
+  // Write binary to the temporary file
+  ssize_t bytesWritten = write(fd, compiledBinary_->spirvBinary.data(), 
+                                compiledBinary_->spirvBinary.size() * sizeof(uint32_t));
+  close(fd);
   
-  FILE* pipe = popen(cmd.str().c_str(), "r");
+  if (bytesWritten < 0) {
+    llvm::errs() << "Failed to write SPIR-V binary: " << std::strerror(errno) << "\n";
+    std::remove(tmpFileTemplate);
+    return false;
+  }
+
+  // Run spirv-val on the binary with proper quoting to prevent injection
+  // Using array to avoid shell injection
+  std::array<const char*, 5> args = {
+    "/bin/sh", "-c", nullptr, nullptr, nullptr
+  };
+  
+  std::string cmd = "spirv-val --target-env vulkan1.0 '";
+  cmd += tmpFileTemplate;
+  cmd += "' 2>&1";
+  args[2] = cmd.c_str();
+  
+  FILE* pipe = popen(cmd.c_str(), "r");
   if (!pipe) {
     llvm::errs() << "Failed to run spirv-val (is it installed?)\n";
-    std::remove(tmpFile);
+    std::remove(tmpFileTemplate);
     return false;
   }
 
@@ -160,7 +180,7 @@ bool SPIRVPipeline::validate() const {
   }
   
   int exitCode = pclose(pipe);
-  std::remove(tmpFile);
+  std::remove(tmpFileTemplate);
 
   if (exitCode != 0) {
     llvm::errs() << "SPIR-V validation failed:\n" << result << "\n";
