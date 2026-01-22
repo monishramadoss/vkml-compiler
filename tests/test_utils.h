@@ -46,6 +46,27 @@ public:
         }
     }
     
+    // Overloads for string comparison
+    static void assert_equal(const std::string& expected, const std::string& actual,
+                           const char* file, int line) {
+        if (expected != actual) {
+            std::cerr << "FAILED: " << current_test << "\n";
+            std::cerr << "  " << file << ":" << line << ": Expected \"" << expected 
+                     << "\" but got \"" << actual << "\"\n";
+            failures++;
+        }
+    }
+    
+    static void assert_not_equal(const std::string& val1, const std::string& val2,
+                                const char* file, int line) {
+        if (val1 == val2) {
+            std::cerr << "FAILED: " << current_test << "\n";
+            std::cerr << "  " << file << ":" << line << ": Values should not be equal: \"" 
+                     << val1 << "\"\n";
+            failures++;
+        }
+    }
+    
     static void pass_test() {
         std::cout << "PASSED: " << current_test << "\n";
     }
@@ -73,8 +94,8 @@ std::string TestRunner::current_test = "";
 #define TEST_END() TestRunner::pass_test()
 #define ASSERT_TRUE(condition) TestRunner::assert_true((condition), #condition, __FILE__, __LINE__)
 #define ASSERT_FALSE(condition) TestRunner::assert_true(!(condition), "!(" #condition ")", __FILE__, __LINE__)
-#define ASSERT_EQ(expected, actual) TestRunner::assert_equal((long long)(expected), (long long)(actual), __FILE__, __LINE__)
-#define ASSERT_NE(val1, val2) TestRunner::assert_not_equal((long long)(val1), (long long)(val2), __FILE__, __LINE__)
+#define ASSERT_EQ(expected, actual) TestRunner::assert_equal((expected), (actual), __FILE__, __LINE__)
+#define ASSERT_NE(val1, val2) TestRunner::assert_not_equal((val1), (val2), __FILE__, __LINE__)
 #define ASSERT_GT(val1, val2) TestRunner::assert_true((val1) > (val2), #val1 " > " #val2, __FILE__, __LINE__)
 #define EXPECT_EQ(expected, actual) ASSERT_EQ(expected, actual)
 #define EXPECT_NE(val1, val2) ASSERT_NE(val1, val2)

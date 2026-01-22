@@ -28,6 +28,9 @@
 #include "Compiler.h"
 
 template <typename T> class Tensor {
+  // Allow Tensor<T> to access private members of Tensor<U>
+  template <typename U> friend class Tensor;
+  
 private:
   std::vector<int64_t> shapeStorage_; // Owns the shape memory
   mlir::ArrayRef<int64_t> shape_;     // View into owned storage
@@ -819,13 +822,12 @@ public:
   // the first dimension; rank is reduced by 1. If original shape is [D0, D1,
   // ..., Dn] result shape is [D1, ..., Dn].
   template <typename IndexType,
-            typename = std::enable_if_t<std::is_integral_v<IndexType> &&
-                                        std::is_unsigned_v<IndexType>>>
+            typename = std::enable_if_t<std::is_integral_v<IndexType>>>
   Tensor<T> operator[](IndexType index) const {
     if (shape_.empty()) {
       throw std::out_of_range("Cannot index into a rank-0 tensor");
     }
-    if (index >= static_cast<IndexType>(shape_[0])) {
+    if (index < 0 || index >= static_cast<IndexType>(shape_[0])) {
       throw std::out_of_range("Index out of bounds for first dimension");
     }
     auto &builder = vkml::Compiler::getInstance()->getBuilder();
@@ -1182,7 +1184,7 @@ public:
 
     Tensor<T> result(std::vector<int64_t>(transposedShape.begin(), 
                                           transposedShape.end()));
-    result.write(transposeOp.getResult(0));
+    result.write(transposeOp.getResult()[0]);
     return result;
   }
 
