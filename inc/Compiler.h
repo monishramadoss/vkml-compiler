@@ -59,6 +59,7 @@ static auto cToMLIRType = [](mlir::MLIRContext *ctx,
 #include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
 #include "mlir/Dialect/GPU/Transforms/Passes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
+#include "mlir/Dialect/SPIRV/IR/SPIRVDialect.h"
 
 #include "mlir/Conversion/Passes.h"
 #include "mlir/Transforms/Passes.h"
@@ -204,6 +205,7 @@ private:
     context_.loadDialect<mlir::bufferization::BufferizationDialect>();
     context_.loadDialect<mlir::linalg::LinalgDialect>();
     context_.loadDialect<mlir::math::MathDialect>();
+    context_.loadDialect<mlir::spirv::SPIRVDialect>();
 
     module_ = mlir::ModuleOp::create(builder_.getUnknownLoc());
     builder_.setInsertionPointToStart(module_.getBody());
@@ -258,6 +260,22 @@ public:
     if (mlir::failed(pm.run(module_))) {
       module_.dump();
       std::cerr << "Pipeline failed (partial lowering)\n";
+    }
+  }
+
+  // Run the full pipeline including GPU to SPIR-V conversion
+  void runLinalgToSPIRV() {
+    // First run linalg to GPU
+    runLinalgToGPU();
+    
+    // Then convert GPU to SPIR-V
+    mlir::PassManager pm(&context_);
+    pm.addPass(mlir::createConvertGPUToSPIRVPass());
+    pm.addPass(mlir::createCanonicalizerPass());
+    
+    if (mlir::failed(pm.run(module_))) {
+      module_.dump();
+      std::cerr << "GPU to SPIR-V conversion failed\n";
     }
   }
 };

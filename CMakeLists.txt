@@ -86,6 +86,7 @@ target_link_libraries(vkml-compiler
 	"MLIRLinalgDialect"
 	"MLIRTensorDialect"
 	"MLIRMathDialect"
+	"MLIRSPIRVDialect"
 
 	"MLIRFuncInlinerExtension"
 	 
@@ -93,6 +94,13 @@ target_link_libraries(vkml-compiler
 	"MLIRLinalgTransforms"
 	
 	"MLIRSCFToGPU"
+	"MLIRGPUToSPIRV"
+	"MLIRArithToSPIRV"
+	"MLIRMemRefToSPIRV"
+	"MLIRFuncToSPIRV"
+	"MLIRSPIRVConversion"
+	"MLIRSPIRVTransforms"
+	"MLIRSPIRVSerialization"
 )
 
 target_include_directories(vkml-compiler 
