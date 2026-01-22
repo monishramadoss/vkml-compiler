@@ -32,14 +32,14 @@ void SPIRVPipeline::configureGPUToSPIRVPasses(mlir::PassManager& pm) {
   // Add canonicalization before conversion
   pm.addPass(mlir::createCanonicalizerPass());
 
-  // Convert GPU dialect to SPIR-V dialect with Vulkan target
+  // Convert GPU dialect to SPIR-V dialect
   pm.addNestedPass<mlir::gpu::GPUModuleOp>(mlir::createConvertGPUToSPIRVPass());
 
   // Add canonicalization and cleanup after conversion
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
   
-  // Lower to SPIR-V ops
+  // Lower ABI attributes and update SPIR-V version/capability/extension
   pm.addNestedPass<mlir::spirv::ModuleOp>(mlir::spirv::createSPIRVLowerABIAttributesPass());
   pm.addNestedPass<mlir::spirv::ModuleOp>(mlir::spirv::createSPIRVUpdateVCEPass());
 }
