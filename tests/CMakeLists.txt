@@ -86,6 +86,21 @@ target_include_directories(other_ops_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# SPIR-V validation tests
+add_executable(spirv_validation_tests
+  SPIRVValidation_tests.cpp
+)
+
+target_link_libraries(spirv_validation_tests
+  PRIVATE
+    vkml-compiler
+)
+
+target_include_directories(spirv_validation_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../inc
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 # Register tests with CTest
 add_test(NAME TensorTests COMMAND tensor_tests)
 add_test(NAME ArithmeticOps COMMAND arithmetic_ops_tests)
@@ -93,3 +108,4 @@ add_test(NAME BitwiseOps COMMAND bitwise_ops_tests)
 add_test(NAME ComparisonOps COMMAND comparison_ops_tests)
 add_test(NAME LogicalOps COMMAND logical_ops_tests)
 add_test(NAME OtherOps COMMAND other_ops_tests)
+add_test(NAME SPIRVValidation COMMAND spirv_validation_tests)
