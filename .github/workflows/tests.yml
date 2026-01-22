@@ -44,7 +44,7 @@ jobs:
     
     - name: Build Tests
       run: |
-        cmake --build build/x64-debug-linux --target tensor_tests
+        cmake --build build/x64-debug-linux --target tensor_tests arithmetic_ops_tests bitwise_ops_tests comparison_ops_tests logical_ops_tests other_ops_tests
     
     - name: Run Tests
       run: |
