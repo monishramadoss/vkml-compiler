@@ -3,6 +3,7 @@
 #include "mlir/Conversion/ArithToSPIRV/ArithToSPIRV.h"
 #include "mlir/Conversion/FuncToSPIRV/FuncToSPIRV.h"
 #include "mlir/Conversion/GPUToSPIRV/GPUToSPIRV.h"
+#include "mlir/Conversion/GPUToSPIRV/GPUToSPIRVPass.h"
 #include "mlir/Conversion/MemRefToSPIRV/MemRefToSPIRV.h"
 #include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "mlir/Dialect/SPIRV/IR/SPIRVDialect.h"
@@ -32,16 +33,15 @@ void SPIRVPipeline::configureGPUToSPIRVPasses(mlir::PassManager& pm) {
   pm.addPass(mlir::createCanonicalizerPass());
 
   // Convert GPU dialect to SPIR-V dialect with Vulkan target
-  mlir::spirv::TargetEnvAttr targetEnv;
-  pm.addPass(mlir::createConvertGPUToSPIRVPass());
+  pm.addNestedPass<mlir::gpu::GPUModuleOp>(mlir::createConvertGPUToSPIRVPass());
 
   // Add canonicalization and cleanup after conversion
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
   
   // Lower to SPIR-V ops
-  pm.addPass(mlir::spirv::createLowerABIAttributesPass());
-  pm.addPass(mlir::spirv::createUpdateVersionCapabilityExtensionPass());
+  pm.addNestedPass<mlir::spirv::ModuleOp>(mlir::spirv::createSPIRVLowerABIAttributesPass());
+  pm.addNestedPass<mlir::spirv::ModuleOp>(mlir::spirv::createSPIRVUpdateVCEPass());
 }
 
 bool SPIRVPipeline::compileToSPIRV() {
