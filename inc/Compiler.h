@@ -270,7 +270,7 @@ public:
     
     // Then convert GPU to SPIR-V
     mlir::PassManager pm(&context_);
-    pm.addNestedPass<mlir::gpu::GPUModuleOp>(mlir::createConvertGPUToSPIRVPass());
+    pm.addPass(mlir::createConvertGPUToSPIRVPass());
     pm.addPass(mlir::createCanonicalizerPass());
     
     if (mlir::failed(pm.run(module_))) {

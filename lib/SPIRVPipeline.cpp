@@ -33,7 +33,9 @@ void SPIRVPipeline::configureGPUToSPIRVPasses(mlir::PassManager& pm) {
   pm.addPass(mlir::createCanonicalizerPass());
 
   // Convert GPU dialect to SPIR-V dialect
-  pm.addNestedPass<mlir::gpu::GPUModuleOp>(mlir::createConvertGPUToSPIRVPass());
+  // Note: createConvertGPUToSPIRVPass() operates on builtin.module and internally
+  // walks gpu.module ops, so we use addPass() not addNestedPass()
+  pm.addPass(mlir::createConvertGPUToSPIRVPass());
 
   // Add canonicalization and cleanup after conversion
   pm.addPass(mlir::createCanonicalizerPass());
