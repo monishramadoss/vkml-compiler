@@ -114,16 +114,6 @@ bool compileAndValidate(const std::string& testName) {
     
     return true;
 }
-            std::cerr << testName << ": SPIR-V validation failed\n";
-            return false;
-        }
-        std::cout << testName << ": SPIR-V validation passed\n";
-    } else {
-        std::cout << testName << ": spirv-val not available, skipping validation\n";
-    }
-    
-    return true;
-}
 
 void test_spirv_basic_addition() {
     TEST_BEGIN("SPIR-V Basic Addition");
