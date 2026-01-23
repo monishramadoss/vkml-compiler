@@ -3,6 +3,13 @@
 #include "SPIRVPipeline.h"
 #include "test_utils.h"
 
+#include "mlir/Dialect/Bufferization/Transforms/Passes.h"
+#include "mlir/Dialect/GPU/Transforms/Passes.h"
+#include "mlir/Dialect/Linalg/Passes.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Conversion/SCFToGPU/SCFToGPUPass.h"
+#include "mlir/Transforms/Passes.h"
+
 #include <fstream>
 #include <cstdio>
 #include <unistd.h>
@@ -43,11 +50,35 @@ bool compileAndValidate(const std::string& testName) {
     auto module = compiler->getModule();
     auto context = compiler->getContext();
     
-    // Run linalg to GPU pipeline first
-    compiler->runLinalgToGPU();
+    // Clone the module before running the GPU pipeline to avoid state pollution
+    auto clonedModule = module.clone();
     
-    // Create SPIR-V pipeline
-    vkml::SPIRVPipeline spirvPipeline(context, module);
+    // Run linalg to GPU pipeline on cloned module
+    mlir::PassManager gpuPM(context);
+    mlir::bufferization::OneShotBufferizePassOptions opts;
+    opts.bufferizeFunctionBoundaries = true;
+    opts.functionBoundaryTypeConversion =
+        mlir::bufferization::LayoutMapOption::IdentityLayoutMap;
+    
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addPass(mlir::bufferization::createOneShotBufferizePass(opts));
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertLinalgToParallelLoopsPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(mlir::createGpuMapParallelLoopsPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertParallelLoopToGpuPass());
+    gpuPM.addPass(mlir::createGpuKernelOutliningPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    
+    if (mlir::failed(gpuPM.run(clonedModule))) {
+        std::cerr << testName << ": Failed to run GPU pipeline\n";
+        return false;
+    }
+    
+    // Create SPIR-V pipeline with cloned module
+    vkml::SPIRVPipeline spirvPipeline(context, clonedModule);
     
     // Compile to SPIR-V
     if (!spirvPipeline.compileToSPIRV()) {
@@ -73,6 +104,16 @@ bool compileAndValidate(const std::string& testName) {
     // Validate if spirv-val is available
     if (isSPIRVValAvailable()) {
         if (!spirvPipeline.validate()) {
+            std::cerr << testName << ": SPIR-V validation failed\n";
+            return false;
+        }
+        std::cout << testName << ": SPIR-V validation passed\n";
+    } else {
+        std::cout << testName << ": spirv-val not available, skipping validation\n";
+    }
+    
+    return true;
+}
             std::cerr << testName << ": SPIR-V validation failed\n";
             return false;
         }
@@ -163,9 +204,31 @@ void test_spirv_binary_buffer() {
     auto module = compiler->getModule();
     auto context = compiler->getContext();
     
-    compiler->runLinalgToGPU();
+    // Clone module to avoid state pollution
+    auto clonedModule = module.clone();
     
-    vkml::SPIRVPipeline spirvPipeline(context, module);
+    // Run GPU pipeline on cloned module
+    mlir::PassManager gpuPM(context);
+    mlir::bufferization::OneShotBufferizePassOptions opts;
+    opts.bufferizeFunctionBoundaries = true;
+    opts.functionBoundaryTypeConversion =
+        mlir::bufferization::LayoutMapOption::IdentityLayoutMap;
+    
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addPass(mlir::bufferization::createOneShotBufferizePass(opts));
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertLinalgToParallelLoopsPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(mlir::createGpuMapParallelLoopsPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertParallelLoopToGpuPass());
+    gpuPM.addPass(mlir::createGpuKernelOutliningPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    
+    ASSERT_TRUE(mlir::succeeded(gpuPM.run(clonedModule)));
+    
+    vkml::SPIRVPipeline spirvPipeline(context, clonedModule);
     
     ASSERT_TRUE(spirvPipeline.compileToSPIRV());
     ASSERT_TRUE(spirvPipeline.serializeToBinary());
@@ -203,9 +266,31 @@ void test_spirv_vulkan_compatibility() {
     auto module = compiler->getModule();
     auto context = compiler->getContext();
     
-    compiler->runLinalgToGPU();
+    // Clone module to avoid state pollution
+    auto clonedModule = module.clone();
     
-    vkml::SPIRVPipeline spirvPipeline(context, module);
+    // Run GPU pipeline on cloned module
+    mlir::PassManager gpuPM(context);
+    mlir::bufferization::OneShotBufferizePassOptions opts;
+    opts.bufferizeFunctionBoundaries = true;
+    opts.functionBoundaryTypeConversion =
+        mlir::bufferization::LayoutMapOption::IdentityLayoutMap;
+    
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addPass(mlir::bufferization::createOneShotBufferizePass(opts));
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertLinalgToParallelLoopsPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(mlir::createGpuMapParallelLoopsPass());
+    gpuPM.addNestedPass<mlir::func::FuncOp>(
+        mlir::createConvertParallelLoopToGpuPass());
+    gpuPM.addPass(mlir::createGpuKernelOutliningPass());
+    gpuPM.addPass(mlir::createCanonicalizerPass());
+    
+    ASSERT_TRUE(mlir::succeeded(gpuPM.run(clonedModule)));
+    
+    vkml::SPIRVPipeline spirvPipeline(context, clonedModule);
     
     ASSERT_TRUE(spirvPipeline.compileToSPIRV());
     ASSERT_TRUE(spirvPipeline.serializeToBinary());

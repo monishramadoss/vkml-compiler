@@ -54,7 +54,20 @@ bool SPIRVPipeline::compileToSPIRV() {
   // Run the pipeline
   if (mlir::failed(pm.run(module_))) {
     llvm::errs() << "Failed to convert GPU to SPIR-V\n";
+    module_.dump();
     return false;
+  }
+
+  // Debug: Check if any SPIR-V modules were created
+  bool hasSpvModule = false;
+  module_.walk([&](mlir::spirv::ModuleOp spvModule) {
+    hasSpvModule = true;
+  });
+  
+  if (!hasSpvModule) {
+    llvm::errs() << "Warning: No SPIR-V modules found after conversion\n";
+    llvm::errs() << "Module contents:\n";
+    module_.dump();
   }
 
   return true;
