@@ -86,6 +86,7 @@ target_link_libraries(vkml-compiler
 	"MLIRLinalgDialect"
 	"MLIRTensorDialect"
 	"MLIRMathDialect"
+	"MLIRSPIRVDialect"
 
 	"MLIRFuncInlinerExtension"
 	 
@@ -93,6 +94,13 @@ target_link_libraries(vkml-compiler
 	"MLIRLinalgTransforms"
 	
 	"MLIRSCFToGPU"
+	"MLIRGPUToSPIRV"
+	"MLIRArithToSPIRV"
+	"MLIRMemRefToSPIRV"
+	"MLIRFuncToSPIRV"
+	"MLIRSPIRVConversion"
+	"MLIRSPIRVTransforms"
+	"MLIRSPIRVSerialization"
 )
 
 target_include_directories(vkml-compiler 
@@ -106,6 +114,11 @@ set_property(GLOBAL PROPERTY VKML_COMPILER_HEADERS ${MLIR_INCLUDE_DIRS} ${LLVM_I
 add_executable(vkml-test-app main.cpp)
 target_link_libraries(vkml-test-app PRIVATE vkml-compiler)
 target_include_directories(vkml-test-app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+
+# SPIR-V example application
+add_executable(spirv-example spirv_example.cpp)
+target_link_libraries(spirv-example PRIVATE vkml-compiler)
+target_include_directories(spirv-example PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
 if(TOOLS)
 	add_subdirectory(tools)
