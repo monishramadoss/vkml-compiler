@@ -42,13 +42,18 @@
       "installDir": "${sourceDir}/install/${presetName}",
       "binaryDir": "${sourceDir}/build/${presetName}"
     },
+
     {
-      "name": "linux-base",
-      "hidden": true,
+      "name": "debug-linux",
+      "displayName": "Debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
       "inherits": [
         "dirs",
         "mold",
-        "ccache"
+        "ccache",
+        "clangd"
       ],
       "generator": "Ninja",
       "condition": {
@@ -58,8 +63,27 @@
       }
     },
     {
-      "name": "macos-base",
-      "hidden": true,
+      "name": "release-linux",
+      "displayName": "Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "inherits": [
+        "dirs",
+        "mold",
+        "ccache"        
+      ],
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+  
+    {
+      "name": "debug-macos",
+      "displayName": "Debug",
       "inherits": [
         "dirs"
       ],
@@ -68,17 +92,37 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "windows-base",
-      "hidden": true,
+      "name": "release-macos",
+      "displayName": "Release",
+      "inherits": [
+        "dirs"
+      ],
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },  
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug-windows",
+      "displayName": "Debug",
       "inherits": [
         "dirs",
         "msvc",
         "ccache"
       ],
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
       },
@@ -89,8 +133,28 @@
       }
     },
     {
-      "name": "windows-fast-base",
-      "hidden": true,
+      "name": "release-windows",
+      "displayName": "Release",
+      "inherits": [
+        "dirs",
+        "msvc",
+        "ccache"
+      ],
+      "cacheVariables": {        
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "fast-debug-windows",
+      "displayName": "Fast_Debug",
       "inherits": [
         "dirs",
         "clangd",
@@ -102,116 +166,25 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      }
-    },
-    {
-      "name": "x64-debug-linux",
-      "displayName": "Debug",
-      "inherits": [
-        "linux-base",
-        "clangd"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "x64-release-linux",
-      "displayName": "Release",
-      "inherits": [
-        "linux-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "x64-debug-macos",
-      "displayName": "Debug",
-      "inherits": [
-        "macos-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "x64-release-macos",
-      "displayName": "Release",
-      "inherits": [
-        "macos-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "x64-debug-windows",
-      "displayName": "Debug",
-      "inherits": [
-        "windows-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "x64-release-windows",
-      "displayName": "Release",
-      "inherits": [
-        "windows-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "x64-fast-debug-windows",
-      "displayName": "Fast_Debug",
-      "inherits": [
-        "windows-fast-base"
-      ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "x64-fast-release-windows",
+      "name": "fast-release-windows",
       "displayName": "Fast_Release",
       "inherits": [
-        "windows-fast-base"
+        "dirs",
+        "clangd",
+        "mold",
+        "ccache"
       ],
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -219,44 +192,6 @@
     }
   ],
   "buildPresets": [
-    {
-      "name": "tools",
-      "hidden": true,
-      "targets": [
-        "vkml-opt",
-        "vkml-translate"
-      ]
-    },
-    {
-      "name": "tools-linux",
-      "inherits": [ "tools" ],
-      "configurePreset": "x64-debug-linux",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      }
-    },
-    {
-      "name": "tools-macos",
-      "inherits": [ "tools" ],
-      "configurePreset": "x64-debug-macos",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      }
-    },
-    {
-      "name": "tools-windows",
-      "inherits": [ "tools" ],
-      "configurePreset": "x64-debug-windows",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
-    },
     {
       "name": "dev",
       "hidden": true,
@@ -267,7 +202,7 @@
     {
       "name": "dev-win",
       "inherits": [ "dev" ],
-      "configurePreset": "x64-debug-windows",
+      "configurePreset": "debug-windows",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -279,7 +214,7 @@
       "targets": [
         "vkml-test-app"
       ],
-      "configurePreset": "x64-fast-debug-windows",
+      "configurePreset": "fast-debug-windows",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -289,7 +224,40 @@
     {
       "name": "dev-linux",
       "inherits": [ "dev" ],
-      "configurePreset": "x64-debug-linux",
+      "configurePreset": "debug-linux",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "tests",
+      "hidden": true,
+      "targets": [
+        "tensor_tests",
+        "arithmetic_ops_tests",
+        "bitwise_ops_tests",
+        "comparison_ops_tests",
+        "logical_ops_tests",
+        "other_ops_tests",
+        "spirv_pipeline_tests"
+      ]
+    },
+    {
+      "name": "tests-win",
+      "inherits": [ "tests" ],
+      "configurePreset": "debug-windows",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "tests-linux",
+      "inherits": [ "tests" ],
+      "configurePreset": "debug-linux",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -299,25 +267,66 @@
   ],
   "testPresets": [
     {
-      "name": "cTest",
-      "description": "",
-      "displayName": "",
-      "configurePreset": "x64-debug-linux",
-      "execution": {}
+      "name": "tests-linux",
+      "description": "Run tests on Linux",
+      "displayName": "Tests (Linux)",
+      "configurePreset": "debug-linux",
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
     },
     {
-      "name": "cTest-win",
-      "description": "",
-      "displayName": "",
-      "configurePreset": "x64-debug-windows",
-      "execution": {}
+      "name": "tests-win",
+      "description": "Run tests on Windows",
+      "displayName": "Tests (Windows)",
+      "configurePreset": "debug-windows",
+      
+    
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "build-and-test-win",
+      "displayName": "Build & Run Tests (Windows)",
+      "description": "Configure, build, and run all tests on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug-windows"
+        },
+        {
+          "type": "build",
+          "name": "tests-win"
+        },
+        {
+          "type": "test",
+          "name": "tests-win"
+        }
+      ]
     },
     {
-      "name": "cTest-win-fast",
-      "description": "",
-      "displayName": "",
-      "configurePreset": "x64-fast-debug-windows",
-      "execution": {}
+      "name": "build-and-test-linux",
+      "displayName": "Build & Run Tests (Linux)",
+      "description": "Configure, build, and run all tests on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug-linux"
+        },
+        {
+          "type": "build",
+          "name": "tests-linux"
+        },
+        {
+          "type": "test",
+          "name": "tests-linux"
+        }
+      ]
     }
   ]
 }
