@@ -36,15 +36,11 @@ jobs:
     
     - name: Configure CMake
       run: |
-        cmake --preset x64-debug-linux
-    
-    - name: Build
-      run: |
-        cmake --build build/x64-debug-linux --target vkml-compiler
-    
+        cmake --preset debug-linux
+        
     - name: Build Tests
       run: |
-        cmake --build build/x64-debug-linux --target tensor_tests arithmetic_ops_tests bitwise_ops_tests comparison_ops_tests logical_ops_tests other_ops_tests
+        cmake --build build/debug-linux --target vkml-compiler tensor_tests arithmetic_ops_tests bitwise_ops_tests comparison_ops_tests logical_ops_tests other_ops_tests
     
     - name: Run Tests
       run: |
