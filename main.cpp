@@ -29,6 +29,8 @@
 //     return 0;
 // }
 
+#include "comp.hpp"
+
 #include "Tensor.h"
 #include <iostream>
 
@@ -36,12 +38,11 @@ int main() {
     Tensor<float> tensor_0({2, 3});
     Tensor<float> tensor_1({1, 3});
     auto result = tensor_0 + tensor_1;
-    auto result2 = result -tensor_0;
-    
-    vkml::dump();
+    auto result2 = result - tensor_0;
     
     vkml::Compiler::getInstance()->runLinalgToGPU();
-    std::cout << "MLIR Module:\n" ;
+
+
 
     return 0;
  }

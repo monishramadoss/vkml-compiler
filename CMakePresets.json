@@ -79,8 +79,7 @@
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
       }
-    },
-  
+    },  
     {
       "name": "debug-macos",
       "displayName": "Debug",
@@ -120,7 +119,7 @@
         "dirs",
         "msvc",
         "ccache"
-      ],
+      ],      
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_C_COMPILER": "cl.exe",
@@ -196,7 +195,8 @@
       "name": "dev",
       "hidden": true,
       "targets": [
-        "vkml-test-app"
+        "vkml-test-app",
+        "vkml-spirv-test-app"
       ]
     },
     {
@@ -210,10 +210,8 @@
       }
     },
     {
-      "name": "dev-win-fast",
-      "targets": [
-        "vkml-test-app"
-      ],
+      "name": "fast-dev-win",
+      "inherits": [ "dev" ],
       "configurePreset": "fast-debug-windows",
       "condition": {
         "type": "equals",
@@ -240,14 +238,13 @@
         "bitwise_ops_tests",
         "comparison_ops_tests",
         "logical_ops_tests",
-        "other_ops_tests",
-        "spirv_pipeline_tests"
+        "other_ops_tests"
       ]
     },
     {
       "name": "tests-win",
       "inherits": [ "tests" ],
-      "configurePreset": "debug-windows",
+      "configurePreset": "fast-debug-windows",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -280,53 +277,13 @@
       "name": "tests-win",
       "description": "Run tests on Windows",
       "displayName": "Tests (Windows)",
-      "configurePreset": "debug-windows",
+      "configurePreset": "fast-debug-windows",
       
     
       "execution": {
         "noTestsAction": "error",
         "stopOnFailure": false
       }
-    }
-  ],
-  "workflowPresets": [
-    {
-      "name": "build-and-test-win",
-      "displayName": "Build & Run Tests (Windows)",
-      "description": "Configure, build, and run all tests on Windows",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "debug-windows"
-        },
-        {
-          "type": "build",
-          "name": "tests-win"
-        },
-        {
-          "type": "test",
-          "name": "tests-win"
-        }
-      ]
-    },
-    {
-      "name": "build-and-test-linux",
-      "displayName": "Build & Run Tests (Linux)",
-      "description": "Configure, build, and run all tests on Linux",
-      "steps": [
-        {
-          "type": "configure",
-          "name": "debug-linux"
-        },
-        {
-          "type": "build",
-          "name": "tests-linux"
-        },
-        {
-          "type": "test",
-          "name": "tests-linux"
-        }
-      ]
     }
   ]
 }

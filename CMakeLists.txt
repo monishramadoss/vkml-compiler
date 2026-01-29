@@ -65,7 +65,7 @@ source_group("generated" FILES ${GEN_SOURCES})
 add_library(vkml-compiler STATIC 
      ${HEADERS} ${GEN_HEADERS} ${SOURCES} ${GEN_SOURCES} )
 
-target_link_libraries(vkml-compiler 
+target_link_libraries(vkml-compiler PUBLIC
    	"MLIRIR"
     "MLIRSupport"
     "MLIRParser"
@@ -86,12 +86,29 @@ target_link_libraries(vkml-compiler
 	"MLIRLinalgDialect"
 	"MLIRTensorDialect"
 	"MLIRMathDialect"
-
+	"MLIRSPIRVDialect"
+	"MLIRAffineDialect"
+	"MLIRControlFlowDialect"
+	"MLIRDLTIDialect"
+	
 	"MLIRFuncInlinerExtension"
 	 
+	"MLIRAffineTransforms"
 	"MLIRGPUTransforms"
 	"MLIRLinalgTransforms"
-	
+	"MLIRSPIRVTransforms"
+	"MLIRSPIRVSerialization"
+
+	"MLIRGPUToSPIRV"
+    "MLIRMemRefToSPIRV"
+    "MLIRArithToSPIRV"
+	"MLIRMathToSPIRV"
+	"MLIRFuncToSPIRV"
+	"MLIRIndexToSPIRV"
+	"MLIRSCFToSPIRV"
+	"MLIRTensorToSPIRV"
+	"MLIRReconcileUnrealizedCasts"
+
 	"MLIRSCFToGPU"
 )
 
@@ -106,6 +123,8 @@ set_property(GLOBAL PROPERTY VKML_COMPILER_HEADERS ${MLIR_INCLUDE_DIRS} ${LLVM_I
 add_executable(vkml-test-app main.cpp)
 target_link_libraries(vkml-test-app PRIVATE vkml-compiler)
 target_include_directories(vkml-test-app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+
+
 
 if(TOOLS)
 	add_subdirectory(tools)

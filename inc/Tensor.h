@@ -144,7 +144,6 @@ public:
     // Initialize mlir::Value to represent the scalar
   }
 
-private:
   inline mlir::Value read() const {
     if (!isInitialized_ || !tensorValue_) {
       throw std::runtime_error("Tensor not initialized");
@@ -152,6 +151,7 @@ private:
     return tensorValue_;
   }
 
+private:
   inline void write(mlir::Value newValue) {
     tensorValue_ = newValue;
     isInitialized_ = true;
@@ -290,12 +290,11 @@ public:
     this->symbolic_id_ = other.getSymbolicId() + "_casted";
   }
 
-  // Helper to create linalg.generic for binary operations
+  // Helper to create linalg.generic for binary operations, wrapped in its own function
   template<typename ArithOp, typename U, typename V>
   static auto linalgBinaryOp(const Tensor<U> &lhs, const Tensor<V> &rhs) {
     using ResultType = std::common_type_t<U, V>;
     auto compiler = vkml::Compiler::getInstance();
-    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     auto ctx = compiler->getContext();
@@ -321,27 +320,18 @@ public:
     std::reverse(outputShape.begin(), outputShape.end());
     
     auto resultType = mlir::RankedTensorType::get(outputShape, elementType);
-    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
-        loc, outputShape, elementType);
     
     // Create indexing maps for broadcasting
-    // Helper to create affine map for broadcasting a tensor
     auto createBroadcastMap = [&](mlir::RankedTensorType tensorType) -> mlir::AffineMap {
       llvm::SmallVector<mlir::AffineExpr> exprs;
       int64_t tensorRank = tensorType.getRank();
       
-      // For each dimension in the result, map to the corresponding input dimension
-      // If input dimension is 1 (broadcast dimension), use dimension 0 of that axis
-      // If input has fewer dimensions, skip those result dimensions
       for (int64_t i = 0; i < maxRank; ++i) {
         int64_t inputDimIndex = i - (maxRank - tensorRank);
         if (inputDimIndex >= 0) {
-          // Check if this dimension needs broadcasting (size 1 in input, size > 1 in output)
           if (tensorType.getShape()[inputDimIndex] == 1 && outputShape[i] > 1) {
-            // Broadcast dimension - always use index 0
             exprs.push_back(mlir::getAffineConstantExpr(0, ctx));
           } else {
-            // Normal dimension - use the loop dimension
             exprs.push_back(mlir::getAffineDimExpr(i, ctx));
           }
         }
@@ -357,34 +347,54 @@ public:
     llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
         maxRank, mlir::utils::IteratorType::parallel);
     
-    auto genericOp = builder.create<mlir::linalg::GenericOp>(
-        loc, resultType, mlir::ValueRange{lhsValue, rhsValue}, 
-        emptyTensor.getResult(),
-        indexingMaps, iteratorTypes,
-        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
-          auto result = b.create<ArithOp>(nestedLoc, args[0], args[1]);
-          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+    // Create a function that wraps the linalg.generic operation
+    // Function signature: (lhsType, rhsType) -> resultType
+    llvm::SmallVector<mlir::Type> inputTypes = {lhsType, rhsType};
+    llvm::SmallVector<mlir::Type> resultTypes = {resultType};
+    
+    auto func = compiler->createFunctionWithBody(
+        std::string(ArithOp::getOperationName()) + "_linalg",
+        inputTypes, resultTypes,
+        [&](mlir::OpBuilder &fnBuilder, mlir::func::FuncOp func, mlir::Block &block) {
+          auto fnLoc = fnBuilder.getUnknownLoc();
+          // Use block arguments as function inputs
+          auto fnLhsArg = block.getArgument(0);
+          auto fnRhsArg = block.getArgument(1);
+          
+          auto fnEmptyTensor = fnBuilder.create<mlir::tensor::EmptyOp>(
+              fnLoc, outputShape, elementType);
+          
+          auto fnGenericOp = fnBuilder.create<mlir::linalg::GenericOp>(
+              fnLoc, resultType, mlir::ValueRange{fnLhsArg, fnRhsArg}, 
+              fnEmptyTensor.getResult(),
+              indexingMaps, iteratorTypes,
+              [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+                auto result = b.create<ArithOp>(nestedLoc, args[0], args[1]);
+                b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+              });
+          
+          fnBuilder.create<mlir::func::ReturnOp>(fnLoc, fnGenericOp.getResults());
         });
     
+    // Call the function from main with actual tensor values
+    auto mainScope = compiler->inMainBeforeTerminator();
+    auto callOp = builder.create<mlir::func::CallOp>(loc, func, mlir::ValueRange{lhsValue, rhsValue});
+    
     Tensor<ResultType> result(outputShape);
-    result.write(genericOp.getResult(0));
+    result.write(callOp.getResult(0));
     return result;
   }
 
-  // Helper for unary operations
+  // Helper for unary operations, wrapped in its own function
   template<typename ArithOp, typename V>
   static auto linalgUnaryOp(const Tensor<V> &input) {
     auto compiler = vkml::Compiler::getInstance();
-    auto scope = compiler->inMainBeforeTerminator();  // Ensure operations go in main function
     auto &builder = compiler->getBuilder();
     auto loc = builder.getUnknownLoc();
     
     auto inputValue = input.read();
     auto inputType = mlir::cast<mlir::RankedTensorType>(inputValue.getType());
     auto resultType = inputType;
-    
-    auto emptyTensor = builder.create<mlir::tensor::EmptyOp>(
-        loc, inputType.getShape(), inputType.getElementType());
     
     llvm::SmallVector<mlir::AffineMap> indexingMaps = {
         builder.getMultiDimIdentityMap(inputType.getRank()),
@@ -393,16 +403,39 @@ public:
     llvm::SmallVector<mlir::utils::IteratorType> iteratorTypes(
         inputType.getRank(), mlir::utils::IteratorType::parallel);
     
-    auto genericOp = builder.create<mlir::linalg::GenericOp>(
-        loc, resultType, inputValue, emptyTensor.getResult(),
-        indexingMaps, iteratorTypes,
-        [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
-          auto result = b.create<ArithOp>(nestedLoc, args[0]);
-          b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+    // Create a function that wraps the linalg.generic operation
+    // Function signature: (inputType) -> resultType
+    llvm::SmallVector<mlir::Type> inputTypes = {inputType};
+    llvm::SmallVector<mlir::Type> resultTypes = {resultType};
+    
+    auto func = compiler->createFunctionWithBody(
+        std::string(ArithOp::getOperationName()) + "_linalg",
+        inputTypes, resultTypes,
+        [&](mlir::OpBuilder &fnBuilder, mlir::func::FuncOp func, mlir::Block &block) {
+          auto fnLoc = fnBuilder.getUnknownLoc();
+          // Use block argument as function input
+          auto fnInputArg = block.getArgument(0);
+          
+          auto fnEmptyTensor = fnBuilder.create<mlir::tensor::EmptyOp>(
+              fnLoc, inputType.getShape(), inputType.getElementType());
+          
+          auto fnGenericOp = fnBuilder.create<mlir::linalg::GenericOp>(
+              fnLoc, resultType, fnInputArg, fnEmptyTensor.getResult(),
+              indexingMaps, iteratorTypes,
+              [&](mlir::OpBuilder &b, mlir::Location nestedLoc, mlir::ValueRange args) {
+                auto result = b.create<ArithOp>(nestedLoc, args[0]);
+                b.create<mlir::linalg::YieldOp>(nestedLoc, result.getResult());
+              });
+          
+          fnBuilder.create<mlir::func::ReturnOp>(fnLoc, fnGenericOp.getResults());
         });
     
+    // Call the function from main with actual tensor value
+    auto mainScope = compiler->inMainBeforeTerminator();
+    auto callOp = builder.create<mlir::func::CallOp>(loc, func, mlir::ValueRange{inputValue});
+    
     Tensor<V> result(input.getShape());
-    result.write(genericOp.getResult(0));
+    result.write(callOp.getResult(0));
     return result;
   }
 
