@@ -29,20 +29,17 @@
 //     return 0;
 // }
 
-#include "comp.hpp"
-
-#include "Tensor.h"
-#include <iostream>
+#include "inc/comp.hpp"
 
 int main() {
-    Tensor<float> tensor_0({2, 3});
-    Tensor<float> tensor_1({1, 3});
-    auto result = tensor_0 + tensor_1;
-    auto result2 = result - tensor_0;
-    
-    vkml::Compiler::getInstance()->runLinalgToGPU();
+    auto* context = compiler::getInstance();
 
+    auto input1 = compiler::buildTensorType(*context, typeid(float));
+    auto input2 = compiler::buildTensorType(*context, typeid(float));
+    auto funcOp = compiler::createFunctionWithTosaOp<float, float>(*context, "my_function");
 
+    context->mod.dump();
 
+    compiler::freeInstance();
     return 0;
  }

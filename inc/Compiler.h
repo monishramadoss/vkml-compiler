@@ -1,5 +1,12 @@
 #pragma once
 #include <unordered_map>
+#include <type_traits>
+#include <typeinfo>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <memory>
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
